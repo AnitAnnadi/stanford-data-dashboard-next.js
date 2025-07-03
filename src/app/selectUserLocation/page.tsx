@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import SelectUserLocationForm from "@/components/location/SelectUserLocationForm";
+import SelectUserLocationForm from "@/components/selectCreateLocation/SelectUserLocationForm";
 import { getUserLocationCount, getUser } from "@/utils/actions";
 import { Roles } from "@prisma/client";
 

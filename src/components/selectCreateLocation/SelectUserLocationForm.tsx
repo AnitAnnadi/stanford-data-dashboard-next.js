@@ -12,8 +12,8 @@ import {
   narrowDistricts,
   narrowSchools,
 } from "@/utils/locationFilters";
-import LocationComboBox from "@/components/location/LocationComboBox";
-import MultiplePeriodsCheckbox from "@/components/location/MultiplePeriodsCheckbox";
+import LocationComboBox from "./LocationComboBox";
+import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { Roles } from "@prisma/client";
 
 const SelectUserLocationForm = ({

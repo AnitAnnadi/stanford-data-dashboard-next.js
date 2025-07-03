@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getUserLocationCount, getUser } from "@/utils/actions";
-import CreateLocationForm from "@/components/location/CreateLocationForm";
+import CreateLocationForm from "@/components/selectCreateLocation/CreateLocationForm";
 
 const CreateLocationPage = async () => {
   const { numApprovedUserLocations } = await getUserLocationCount();
