@@ -269,7 +269,7 @@ export const createLocation = async (prevState: any, formData: FormData) => {
 
     return {
       message: "Successfully requested location",
-      redirect: "/pendingUserLocation",
+      redirect: "/pendingLocation",
     };
   } catch (error) {
     return renderError(error);

@@ -30,14 +30,14 @@ const authorizeRoute = async (
   if (
     numPendingUserLocations === 1 &&
     role === "site" &&
-    pathname !== "/pendingUserLocation"
+    pathname !== "/pendingLocation"
   ) {
-    return NextResponse.redirect(new URL("/pendingUserLocation", request.url));
+    return NextResponse.redirect(new URL("/pendingLocation", request.url));
   }
 
   const routesAccessibleWithoutUserLocation =
     isTeacher || role === "site"
-      ? ["/selectUserLocation", "/createLocation", "/pendingUserLocation"]
+      ? ["/selectUserLocation", "/createLocation", "/pendingLocation"]
       : ["/selectUserLocation"];
 
   if (
@@ -56,19 +56,19 @@ const authorizeRoute = async (
   }
 
   const restrictedRoutes: Record<string, string[]> = {
-    stanford: ["/dashboard", "/createLocation", "/pendingUserLocation"],
+    stanford: ["/dashboard", "/createLocation", "/pendingLocation"],
     admin: [
       "/dashboard",
       "/selectUserLocation",
       "/createLocation",
-      "/pendingUserLocation",
+      "/pendingLocation",
       "/dashboard/manageForms",
       "/dashboard/manageLocations",
     ],
     siteAndTeacher: [
       "/selectUserLocation",
       "/createLocation",
-      "/pendingUserLocation",
+      "/pendingLocation",
       "/dashboard/manageForms",
       "/dashboard/manageLocations",
     ],

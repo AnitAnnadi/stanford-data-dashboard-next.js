@@ -32,7 +32,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/selectUserLocation",
-    "/createUserLocation",
-    "/pendingUserLocation",
+    "/createLocation",
+    "/pendingLocation",
   ],
 };
