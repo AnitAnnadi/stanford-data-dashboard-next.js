@@ -360,3 +360,7 @@ export const declineLocationRequest = async (
   revalidatePath("/dashboard/manageLocations");
   return { message: "Location request declined" };
 };
+
+export const addForm = async (prevState: any, formData: FormData) => {
+  return { message: "Successfully added form" };
+};

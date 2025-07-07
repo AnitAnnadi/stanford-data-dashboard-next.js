@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/command";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "../ui/input";
 
 interface LocationComboBoxProps {
   name: string;
@@ -34,7 +35,7 @@ const LocationComboBox = ({
   const [open, setOpen] = useState(false);
   return (
     <div className={`mb-${marginBottom}`}>
-      <input name={name} value={value} type="hidden" />
+      <Input name={name} value={value} type="hidden" />
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

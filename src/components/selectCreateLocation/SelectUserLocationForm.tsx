@@ -15,6 +15,7 @@ import {
 import LocationComboBox from "./LocationComboBox";
 import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { Roles } from "@prisma/client";
+import { Input } from "../ui/input";
 
 const SelectUserLocationForm = ({
   role,
@@ -133,8 +134,8 @@ const SelectUserLocationForm = ({
 
   return (
     <FormContainer action={addUserLocation}>
-      <input type="hidden" name="role" value={role} />
-      <input
+      <Input type="hidden" name="role" value={role} />
+      <Input
         type="hidden"
         name="isTeacher"
         value={isTeacher ? "true" : "false"}

@@ -1,13 +1,14 @@
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
+import { Input } from "../ui/input";
 
 const MultiplePeriodsCheckbox = () => {
   const [checked, setChecked] = useState(false);
 
   return (
     <>
-      <input
+      <Input
         name="multiplePeriods"
         type="hidden"
         value={checked ? "true" : "false"}

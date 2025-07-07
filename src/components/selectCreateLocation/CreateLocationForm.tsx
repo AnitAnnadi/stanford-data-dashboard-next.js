@@ -14,6 +14,7 @@ import {
 import { Roles } from "@prisma/client";
 import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { SubmitButton } from "../form/Buttons";
+import { Input } from "../ui/input";
 
 const CreateLocationForm = ({
   role,
@@ -99,8 +100,8 @@ const CreateLocationForm = ({
 
   return (
     <FormContainer action={createLocation}>
-      <input type="hidden" name="role" value={role} />
-      <input
+      <Input type="hidden" name="role" value={role} />
+      <Input
         type="hidden"
         name="isTeacher"
         value={isTeacher ? "true" : "false"}
