@@ -5,8 +5,7 @@ export const GET = async (request: NextRequest) => {
   const url = new URL(request.url);
   const { country, state, county, district, city, returnType } =
     Object.fromEntries(url.searchParams.entries());
-
-  const locations = await prisma.userLocation.findMany({
+  const locations = await prisma.location.findMany({
     where: {
       country,
       state,

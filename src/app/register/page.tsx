@@ -14,7 +14,7 @@ import FormInput from "@/components/form/FormInput";
 import { SubmitButton } from "@/components/form/Buttons";
 import { register } from "@/utils/actions";
 import { useState } from "react";
-import LocationComboBox from "@/components/location/LocationComboBox";
+import LocationComboBox from "@/components/selectCreateLocation/LocationComboBox";
 import countries from "@/data/countries";
 import SelectRole from "@/components/register/SelectRole";
 
