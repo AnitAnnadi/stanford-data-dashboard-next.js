@@ -56,6 +56,17 @@ const SelectUserLocationForm = ({
   const [districts, setDistricts] = useState<string[]>([]);
   const [schools, setSchools] = useState<string[]>([]);
 
+  const fetchLocations = async (
+    returnType: string,
+    query: Record<string, string>
+  ): Promise<string[]> => {
+    const params = new URLSearchParams({ ...query, returnType });
+    const res = await fetch(`/api/locations?${params.toString()}`);
+    const data: { locations: Record<string, string>[] } = await res.json();
+
+    return [...new Set(data.locations.map((item) => item[returnType]))];
+  };
+
   useEffect(() => {
     setUserLocation((prev) => ({
       ...prev,
@@ -71,9 +82,16 @@ const SelectUserLocationForm = ({
     setDistricts([]);
     setSchools([]);
 
-    if (!isUSA && requireCityAndSchool) {
-      setCities(narrowCitiesByCountry({ country: userLocation.country }));
-    }
+    const updateCitiesForNonUS = async () => {
+      if (!isUSA && requireCityAndSchool) {
+        const cities = await fetchLocations("city", {
+          country: userLocation.country,
+        });
+        setCities(cities);
+      }
+    };
+
+    updateCitiesForNonUS();
   }, [userLocation.country]);
 
   useEffect(() => {
@@ -84,52 +102,62 @@ const SelectUserLocationForm = ({
       district: "",
       school: "",
     }));
-
     setSchools([]);
     setDistricts([]);
 
-    if (userLocation.state) {
-      if (requireCityAndSchool)
-        setCities(
-          narrowByState({
-            state: userLocation.state,
-            region: "city",
-          })
-        );
-      else if (requireCounty)
-        setCounties(
-          narrowByState({
-            state: userLocation.state,
-            region: "county",
-          })
-        );
-    }
+    const updateFromState = async () => {
+      if (!userLocation.state) return;
+
+      if (requireCityAndSchool) {
+        const cities = await fetchLocations("city", {
+          country: userLocation.country,
+          state: userLocation.state,
+        });
+        setCities(cities);
+      } else if (requireCounty) {
+        const counties = await fetchLocations("county", {
+          country: userLocation.country,
+          state: userLocation.state,
+        });
+        setCounties(counties);
+      }
+    };
+
+    updateFromState();
   }, [userLocation.state]);
 
   useEffect(() => {
     setUserLocation((prev) => ({ ...prev, district: "" }));
 
-    if (userLocation.county && requireDistrict) {
-      setDistricts(
-        narrowDistricts({
+    const updateDistricts = async () => {
+      if (userLocation.county && requireDistrict) {
+        const districts = await fetchLocations("district", {
+          country: userLocation.country,
           state: userLocation.state,
           county: userLocation.county,
-        })
-      );
-    }
+        });
+        setDistricts(districts);
+      }
+    };
+
+    updateDistricts();
   }, [userLocation.county]);
 
   useEffect(() => {
     setUserLocation((prev) => ({ ...prev, school: "" }));
-    if (userLocation.city) {
-      setSchools(
-        narrowSchools({
+
+    const updateSchools = async () => {
+      if (userLocation.city) {
+        const schools = await fetchLocations("school", {
           country: userLocation.country,
           state: userLocation.state,
           city: userLocation.city,
-        })
-      );
-    }
+        });
+        setSchools(schools);
+      }
+    };
+
+    updateSchools();
   }, [userLocation.city]);
 
   return (

@@ -38,6 +38,16 @@ const CreateLocationForm = ({
 
   const isUSA = location.country === "United States";
 
+  const fetchLocations = async (
+    returnType: string,
+    query: Record<string, string>
+  ): Promise<string[]> => {
+    const params = new URLSearchParams({ ...query, returnType });
+    const res = await fetch(`/api/locations?${params.toString()}`);
+    const data = await res.json();
+    return data.locations.map((item: any) => item[returnType]);
+  };
+
   useEffect(() => {
     setLocation((prev) => ({
       ...prev,
@@ -53,49 +63,62 @@ const CreateLocationForm = ({
   }, [location.country]);
 
   useEffect(() => {
-    setLocation((prev) => ({
-      ...prev,
-      county: "",
-      city: "",
-      district: "",
-    }));
+    const updateCounties = async () => {
+      setLocation((prev) => ({
+        ...prev,
+        county: "",
+        city: "",
+        district: "",
+      }));
+      setDistricts([]);
+      setCities([]);
 
-    setDistricts([]);
-    setCities([]);
-
-    if (location.state) {
-      setCounties(
-        narrowByState({
+      if (location.state) {
+        const counties = await fetchLocations("county", {
+          country: location.country,
           state: location.state,
-          region: "county",
-        })
-      );
-    }
+        });
+        setCounties(counties);
+      }
+    };
+
+    updateCounties();
   }, [location.state]);
 
   useEffect(() => {
-    setLocation((prev) => ({ ...prev, district: "", city: "" }));
-    setCities([]);
+    const updateDistricts = async () => {
+      setLocation((prev) => ({ ...prev, district: "", city: "" }));
+      setCities([]);
 
-    if (location.county) {
-      setDistricts(
-        narrowDistricts({ state: location.state, county: location.county })
-      );
-    }
+      if (location.county) {
+        const districts = await fetchLocations("district", {
+          country: location.country,
+          state: location.state,
+          county: location.county,
+        });
+        setDistricts(districts);
+      }
+    };
+
+    updateDistricts();
   }, [location.county]);
 
   useEffect(() => {
-    setLocation((prev) => ({ ...prev, city: "" }));
+    const updateCities = async () => {
+      setLocation((prev) => ({ ...prev, city: "" }));
 
-    if (location.district) {
-      setCities(
-        narrowCitiesByStateCountyDistrict({
+      if (location.district) {
+        const cities = await fetchLocations("city", {
+          country: location.country,
           state: location.state,
           county: location.county,
           district: location.district,
-        })
-      );
-    }
+        });
+        setCities(cities);
+      }
+    };
+
+    updateCities();
   }, [location.district]);
 
   return (
