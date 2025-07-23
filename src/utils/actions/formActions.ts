@@ -8,16 +8,8 @@ import {
   updateFormSchema,
   validateWithZodSchema,
 } from "../schemas";
-import { getUser } from "./userActions";
+import { ensureStanfordUser } from "./userActions";
 import { redirect } from "next/navigation";
-import { toast } from "sonner";
-
-const ensureStanfordUser = async () => {
-  const { role } = await getUser();
-  if (role !== "stanford") {
-    throw Error("Unauthorized to perform this action");
-  }
-};
 
 export const addForm = async (prevState: any, formData: FormData) => {
   try {

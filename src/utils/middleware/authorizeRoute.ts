@@ -63,7 +63,6 @@ const authorizeRoute = async (
       "/createLocation",
       "/pendingLocation",
       "/dashboard/manageForms",
-      "/dashboard/manageForms/addForm",
       "/dashboard/manageLocations",
     ],
     siteAndTeacher: [
@@ -71,14 +70,9 @@ const authorizeRoute = async (
       "/createLocation",
       "/pendingLocation",
       "/dashboard/manageForms",
-      "/dashboard/manageForms/addForm",
       "/dashboard/manageLocations",
     ],
-    teacher: [
-      "/dashboard/manageForms",
-      "/dashboard/manageForms/addForm",
-      "/dashboard/manageLocations",
-    ],
+    teacher: ["/dashboard/manageForms", "/dashboard/manageLocations"],
   };
 
   if (restrictedRoutes[roleClassification].includes(pathname)) {

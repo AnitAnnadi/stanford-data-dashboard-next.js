@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { accessPayload } from "../types";
 import { renderError } from "../helpers";
-import { toast } from "sonner";
 
 export const getUser = async () => {
   const cookieStore = await cookies();
@@ -23,6 +22,13 @@ export const getUser = async () => {
   );
 
   return payload;
+};
+
+export const ensureStanfordUser = async () => {
+  const { role } = await getUser();
+  if (role !== "stanford") {
+    throw Error("Unauthorized to perform this action");
+  }
 };
 
 export const getUserFromDb = async () => {

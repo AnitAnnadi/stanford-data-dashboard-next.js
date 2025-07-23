@@ -17,13 +17,14 @@ export const registerSchema = z
   .object({
     name: z
       .string()
+      .trim()
       .min(2, {
         message: "Name must be at least 2 characters",
       })
       .max(100, {
         message: "Name must be less than 100 characters",
       }),
-    email: z.string().email("Invalid email format"),
+    email: z.string().trim().email("Invalid email format"),
     password: z
       .string()
       .min(8, {
@@ -154,6 +155,7 @@ export const createLocationSchema = z
     county: z.string().optional(),
     city: z
       .string()
+      .trim()
       .min(2, {
         message: "City must be at least 2 characters",
       })
@@ -163,6 +165,7 @@ export const createLocationSchema = z
     district: z.string().optional(),
     school: z
       .string()
+      .trim()
       .min(2, {
         message: "School must be at least 2 characters",
       })
@@ -202,18 +205,18 @@ export const createLocationSchema = z
   });
 
 const OptionSchema = z.object({
-  text: z.string().min(1, "Option text cannot be empty"),
+  text: z.string().trim().min(1, "Option text cannot be empty"),
   code: z.number(),
 });
 
 const QuestionSchema = z.object({
-  question: z.string().min(1, "Question cannot be empty"),
+  question: z.string().trim().min(1, "Question cannot be empty"),
   options: z.array(OptionSchema),
 });
 
 export const addFormSchema = z
   .object({
-    title: z.string().min(1, "Title cannot be empty"),
+    title: z.string().trim().min(1, "Title cannot be empty"),
     type: z.enum(["pre", "post"]),
     active: z.enum(["true", "false"]).transform((val) => val === "true"),
     askForStudentName: z
@@ -230,7 +233,18 @@ export const addFormSchema = z
       });
     }
 
+    const questions: string[] = [];
     data.questions.forEach((question, questionIndex) => {
+      if (questions.includes(question.question.toLowerCase())) {
+        ctx.addIssue({
+          path: ["questions"],
+          code: z.ZodIssueCode.custom,
+          message: `Question ${questionIndex + 1} is a duplicate question`,
+        });
+      } else {
+        questions.push(question.question.toLowerCase());
+      }
+
       if (question.options.length === 0) {
         ctx.addIssue({
           path: ["questions"],
@@ -239,26 +253,56 @@ export const addFormSchema = z
         });
       }
 
+      const options: string[] = [];
       const optionCodes: number[] = [];
       question.options.forEach((option) => {
+        if (options.includes(option.text.toLowerCase())) {
+          ctx.addIssue({
+            path: ["questions"],
+            code: z.ZodIssueCode.custom,
+            message: `Question ${questionIndex + 1} contains a duplicate option`,
+          });
+        } else {
+          options.push(option.text.toLowerCase());
+        }
+
         if (optionCodes.includes(option.code)) {
           ctx.addIssue({
             path: ["questions"],
             code: z.ZodIssueCode.custom,
             message: `Question ${questionIndex + 1} contains a duplicate code`,
           });
+        } else {
+          optionCodes.push(option.code);
         }
-
-        optionCodes.push(option.code);
       });
     });
   });
 
 export const updateFormSchema = z.object({
   formId: z.string(),
-  title: z.string().min(1, "Title cannot be empty"),
+  title: z.string().trim().min(1, "Title cannot be empty"),
   active: z.enum(["true", "false"]).transform((val) => val === "true"),
   askForStudentName: z
     .enum(["true", "false"])
     .transform((val) => val === "true"),
 });
+
+export const stanfordSelectUserLocationSchema = z
+  .object({
+    role: z.enum(["stanford"]),
+    locationId: z.string(),
+    country: z.string(),
+    state: z.string().optional(),
+    city: z.string(),
+    school: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.country === "United States" && !data.state) {
+      ctx.addIssue({
+        path: ["state"],
+        code: z.ZodIssueCode.custom,
+        message: "State is required for United States locations",
+      });
+    }
+  });

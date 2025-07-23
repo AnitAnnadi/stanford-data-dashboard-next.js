@@ -1,7 +1,6 @@
 "use client";
 import FormContainer from "@/components/form/FormContainer";
 import { SubmitButton } from "@/components/form/Buttons";
-import { addUserLocation } from "@/utils/actions";
 import { useState, useEffect } from "react";
 import countries from "@/data/countries";
 import states from "@/data/states";
@@ -10,13 +9,20 @@ import LocationComboBox from "./LocationComboBox";
 import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { Roles } from "@prisma/client";
 import { Input } from "../ui/input";
+import { actionFunction } from "@/utils/types";
 
 const SelectUserLocationForm = ({
   role,
   isTeacher,
+  action,
+  locationId,
+  selectedUserCanAccessNonUS,
 }: {
   role: Roles;
   isTeacher: boolean;
+  action: actionFunction;
+  locationId?: string;
+  selectedUserCanAccessNonUS?: boolean;
 }) => {
   const [userLocation, setUserLocation] = useState({
     country: "United States",
@@ -40,10 +46,11 @@ const SelectUserLocationForm = ({
     isTeacher,
   });
 
-  let displayCountries = countries;
-  if (!canAccessNonUS) {
-    displayCountries = ["United States"];
-  }
+  const displayCountries = (
+    locationId ? selectedUserCanAccessNonUS : canAccessNonUS
+  )
+    ? countries
+    : ["United States"];
 
   const [counties, setCounties] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
@@ -149,13 +156,16 @@ const SelectUserLocationForm = ({
   }, [userLocation.city]);
 
   return (
-    <FormContainer action={addUserLocation}>
+    <FormContainer action={action}>
       <Input type="hidden" name="role" value={role} />
       <Input
         type="hidden"
         name="isTeacher"
         value={isTeacher ? "true" : "false"}
       />
+      {role === Roles.stanford && (
+        <Input type="hidden" name="locationId" value={locationId} />
+      )}
       <LocationComboBox
         name="country"
         value={userLocation.country}
@@ -210,7 +220,7 @@ const SelectUserLocationForm = ({
           />
         </>
       )}
-      <MultiplePeriodsCheckbox />
+      {role !== Roles.stanford && <MultiplePeriodsCheckbox />}
       <SubmitButton text="add location" className="w-full mt-4" />
     </FormContainer>
   );

@@ -23,13 +23,17 @@ export const getRequiredLocationFields = ({
 
   return {
     canAccessNonUS:
-      role === Roles.country || role === Roles.site || Roles.teacher,
+      role === Roles.stanford ||
+      role === Roles.country ||
+      role === Roles.site ||
+      role === Roles.teacher,
     isUSA,
     requireState: isUSA && role !== Roles.country,
     requireCounty:
       isUSA && (role === Roles.county || role === Roles.district) && !isTeacher,
     requireDistrict: isUSA && role === Roles.district && !isTeacher,
-    requireCityAndSchool: role === Roles.site || isTeacher,
+    requireCityAndSchool:
+      role === Roles.stanford || role === Roles.site || isTeacher,
   };
 };
 

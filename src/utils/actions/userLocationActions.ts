@@ -4,12 +4,75 @@ import {
   selectUserLocationSchema,
   createLocationSchema,
   validateWithZodSchema,
+  stanfordSelectUserLocationSchema,
 } from "../schemas";
 import { Roles } from "@prisma/client";
 import { UserLocationWithoutId } from "../types";
 import { renderError } from "../helpers";
 import { getUser } from "./userActions";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { ensureStanfordUser } from "./userActions";
+
+export const fillUserLocationDetails = async (
+  validatedFields: any,
+  userLocation: UserLocationWithoutId
+) => {
+  if (validatedFields.state && validatedFields.city && validatedFields.school) {
+    const completeLocation = await prisma.location.findFirst({
+      where: {
+        state: validatedFields.state,
+        city: validatedFields.city,
+        school: validatedFields.school,
+      },
+    });
+
+    userLocation.state = validatedFields.state;
+    if (completeLocation?.district && completeLocation?.county) {
+      userLocation.district = completeLocation.district;
+      userLocation.county = completeLocation.county;
+    }
+  }
+};
+
+const verifyLocationConsistency = async ({
+  userId,
+  role,
+  isTeacher,
+  userLocation,
+  onMismatch,
+  onSiteLimit,
+  onGeneralLimit,
+}: {
+  userId: string;
+  role: Roles;
+  isTeacher: boolean;
+  userLocation: UserLocationWithoutId;
+  onMismatch: string;
+  onSiteLimit: string;
+  onGeneralLimit: string;
+}) => {
+  const dbUserLocation = await prisma.userLocation.findFirst({
+    where: { userId },
+  });
+
+  if (!dbUserLocation || role === Roles.teacher || role === Roles.stanford)
+    return;
+
+  if (
+    isTeacher &&
+    role !== Roles.site &&
+    userLocation[role] !== dbUserLocation[role]
+  ) {
+    throw Error(`${onMismatch} '${dbUserLocation[role]}'`);
+  }
+
+  if (role === Roles.site) {
+    throw Error(onSiteLimit);
+  }
+
+  throw Error(onGeneralLimit);
+};
 
 export const addUserLocation = async (prevState: any, formData: FormData) => {
   try {
@@ -32,47 +95,17 @@ export const addUserLocation = async (prevState: any, formData: FormData) => {
       approved: true,
     };
 
-    if (
-      validatedFields.state &&
-      validatedFields.city &&
-      validatedFields.school
-    ) {
-      const completeLocation = await prisma.location.findFirst({
-        where: {
-          state: validatedFields.city,
-          city: validatedFields.city,
-          school: validatedFields.school,
-        },
-      });
-
-      userLocation.state = validatedFields.state;
-      if (completeLocation?.district && completeLocation?.county) {
-        userLocation.district = completeLocation.district;
-        userLocation.county = completeLocation.county;
-      }
-    }
-
-    const dbUserLocation = await prisma.userLocation.findFirst({
-      where: { userId },
+    await fillUserLocationDetails(validatedFields, userLocation);
+    await verifyLocationConsistency({
+      userId,
+      role,
+      isTeacher,
+      userLocation,
+      onMismatch: `You can only add locations within the same ${role} of your first school: `,
+      onSiteLimit:
+        "You are not allowed to submit a location either because you already have a location or have a location pending.",
+      onGeneralLimit: `${role} admin are only allowed to submit one location`,
     });
-    if (dbUserLocation && role !== Roles.teacher && role !== Roles.stanford) {
-      if (isTeacher && role !== Roles.site) {
-        if (userLocation[role] !== dbUserLocation[role]) {
-          throw Error(
-            `You can only add locations within the same ${role} of your first school: ${dbUserLocation[role]}`
-          );
-        }
-      } else {
-        if (role === Roles.site) {
-          throw Error(
-            `You are not allowed to submit a location either because you already have a location or have a location pending.`
-          );
-        }
-
-        throw Error(`${role} admin are only allowed to submit one location`);
-      }
-    }
-
     await prisma.userLocation.create({
       data: {
         ...userLocation,
@@ -96,6 +129,9 @@ export const createLocation = async (prevState: any, formData: FormData) => {
     );
 
     const { role, userId, isTeacher } = await getUser();
+    if (!isTeacher && role !== Roles.site) {
+      throw Error(`${role} admin are not allowed to create a location`);
+    }
 
     const userLocation: UserLocationWithoutId = {
       userId,
@@ -109,27 +145,16 @@ export const createLocation = async (prevState: any, formData: FormData) => {
       approved: false,
     };
 
-    const dbUserLocation = await prisma.userLocation.findFirst({
-      where: { userId },
+    await verifyLocationConsistency({
+      userId,
+      role,
+      isTeacher,
+      userLocation,
+      onMismatch: `You can only create locations within the same ${role} of your first school: `,
+      onSiteLimit:
+        "You are not allowed to create a location either because you already have a location or have a location pending.",
+      onGeneralLimit: `${role} admin are not allowed to create a location`,
     });
-    if (dbUserLocation && role !== Roles.teacher && role !== Roles.stanford) {
-      if (isTeacher && role !== Roles.site) {
-        if (userLocation[role] !== dbUserLocation[role]) {
-          throw Error(
-            `You can only create locations within the same ${role} of your first school: ${dbUserLocation[role]}`
-          );
-        }
-      } else {
-        if (role === Roles.site) {
-          throw Error(
-            `You are not allowed to create a location either because you already have a location or have a location pending.`
-          );
-        }
-
-        throw Error(`${role} admin are not allowed to create a location`);
-      }
-    }
-
     await prisma.userLocation.create({
       data: {
         ...userLocation,
@@ -248,4 +273,99 @@ export const approveLocationRequest = async (
   } catch (error) {
     return renderError(error);
   }
+};
+
+export const stanfordAddUserLocation = async (
+  prevState: any,
+  formData: FormData
+) => {
+  try {
+    await ensureStanfordUser();
+
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedFields = validateWithZodSchema(
+      stanfordSelectUserLocationSchema,
+      rawData
+    );
+
+    const requestedUserLocation = await prisma.userLocation.findUnique({
+      where: {
+        id: validatedFields.locationId,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!requestedUserLocation || requestedUserLocation.approved) {
+      throw Error("Invalid location ID");
+    }
+
+    const { id: userId, role, isTeacher, name } = requestedUserLocation.user;
+    if (
+      validatedFields.country !== "United States" &&
+      role !== Roles.site &&
+      role !== Roles.teacher
+    ) {
+      throw Error("This user's country must be 'United States'");
+    }
+
+    const userLocation: UserLocationWithoutId = {
+      userId: requestedUserLocation.userId,
+      country: validatedFields.country,
+      state: validatedFields.state || null,
+      county: null,
+      district: null,
+      city: validatedFields.city,
+      school: validatedFields.school,
+      multiplePeriods: requestedUserLocation.multiplePeriods,
+      approved: true,
+    };
+
+    await fillUserLocationDetails(validatedFields, userLocation);
+    await prisma.userLocation.delete({
+      where: {
+        id: validatedFields.locationId,
+      },
+    });
+    await verifyLocationConsistency({
+      userId,
+      role,
+      isTeacher,
+      userLocation,
+      onMismatch: `This user can only have locations within the same ${role} as their first school: `,
+      onSiteLimit:
+        "This user is a site admin and already has a location or one that is pending approval.",
+      onGeneralLimit: `As a ${role} admin, this user is only allowed to have one location.`,
+    });
+    await prisma.userLocation.create({
+      data: {
+        ...userLocation,
+      },
+    });
+
+    return {
+      message: `Location for ${name} added successfully`,
+      redirect: "/dashboard/manageLocations",
+    };
+  } catch (error) {
+    return renderError(error);
+  }
+};
+
+export const getUserFromLocation = async (locationId: string) => {
+  const userLocation = await prisma.userLocation.findUnique({
+    where: {
+      id: locationId,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  if (userLocation) {
+    return userLocation;
+  }
+
+  return redirect("/dashboard/manageLocations");
 };

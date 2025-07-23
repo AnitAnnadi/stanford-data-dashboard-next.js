@@ -10,7 +10,11 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import SelectUserLocationForm from "@/components/selectCreateLocation/SelectUserLocationForm";
-import { getUserLocationCount, getUser } from "@/utils/actions";
+import {
+  getUserLocationCount,
+  getUser,
+  addUserLocation,
+} from "@/utils/actions";
 import { Roles } from "@prisma/client";
 
 const SelectUserLocationPage = async () => {
@@ -42,7 +46,11 @@ const SelectUserLocationPage = async () => {
           )}
         </CardHeader>
         <CardContent>
-          <SelectUserLocationForm role={role} isTeacher={isTeacher} />
+          <SelectUserLocationForm
+            role={role}
+            isTeacher={isTeacher}
+            action={addUserLocation}
+          />
         </CardContent>
         {isCustomLocationAllowed && (
           <CardFooter>

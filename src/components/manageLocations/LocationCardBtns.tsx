@@ -4,6 +4,7 @@ import {
   declineLocationRequest,
 } from "@/utils/actions";
 import { ConfirmBeforeProceedingBtn } from "../form/Buttons";
+import Link from "next/link";
 
 const LocationCardBtns = ({ locationId }: { locationId: string }) => {
   return (
@@ -24,7 +25,12 @@ const LocationCardBtns = ({ locationId }: { locationId: string }) => {
       >
         <Button variant="destructive">Decline Request</Button>
       </ConfirmBeforeProceedingBtn>
-      <Button variant="secondary">Decline Request & Add Location</Button>
+
+      <Button variant="secondary" asChild>
+        <Link href={`/selectUserLocation/${locationId}`}>
+          Decline Request & Add Location
+        </Link>
+      </Button>
     </>
   );
 };
