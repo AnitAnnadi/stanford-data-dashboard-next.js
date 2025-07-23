@@ -5,13 +5,7 @@ import { addUserLocation } from "@/utils/actions";
 import { useState, useEffect } from "react";
 import countries from "@/data/countries";
 import states from "@/data/states";
-import {
-  getRequiredLocationFields,
-  narrowByState,
-  narrowCitiesByCountry,
-  narrowDistricts,
-  narrowSchools,
-} from "@/utils/locationFilters";
+import { getRequiredLocationFields, fetchLocations } from "@/utils/helpers";
 import LocationComboBox from "./LocationComboBox";
 import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { Roles } from "@prisma/client";
@@ -55,17 +49,6 @@ const SelectUserLocationForm = ({
   const [cities, setCities] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [schools, setSchools] = useState<string[]>([]);
-
-  const fetchLocations = async (
-    returnType: string,
-    query: Record<string, string>
-  ): Promise<string[]> => {
-    const params = new URLSearchParams({ ...query, returnType });
-    const res = await fetch(`/api/locations?${params.toString()}`);
-    const data: { locations: Record<string, string>[] } = await res.json();
-
-    return [...new Set(data.locations.map((item) => item[returnType]))];
-  };
 
   useEffect(() => {
     setUserLocation((prev) => ({
@@ -148,11 +131,16 @@ const SelectUserLocationForm = ({
 
     const updateSchools = async () => {
       if (userLocation.city) {
-        const schools = await fetchLocations("school", {
+        const schoolQuery: { country: string; state?: string; city: string } = {
           country: userLocation.country,
-          state: userLocation.state,
           city: userLocation.city,
-        });
+        };
+
+        if (isUSA) {
+          schoolQuery.state = userLocation.state;
+        }
+
+        const schools = await fetchLocations("school", schoolQuery);
         setSchools(schools);
       }
     };

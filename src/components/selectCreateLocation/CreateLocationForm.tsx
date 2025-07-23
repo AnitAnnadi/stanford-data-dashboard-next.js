@@ -6,15 +6,11 @@ import countries from "@/data/countries";
 import LocationComboBox from "./LocationComboBox";
 import states from "@/data/states";
 import FormInput from "../form/FormInput";
-import {
-  narrowByState,
-  narrowCitiesByStateCountyDistrict,
-  narrowDistricts,
-} from "@/utils/locationFilters";
 import { Roles } from "@prisma/client";
 import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { SubmitButton } from "../form/Buttons";
 import { Input } from "../ui/input";
+import { fetchLocations } from "@/utils/helpers";
 
 const CreateLocationForm = ({
   role,
@@ -37,16 +33,6 @@ const CreateLocationForm = ({
   const [cities, setCities] = useState<string[]>([]);
 
   const isUSA = location.country === "United States";
-
-  const fetchLocations = async (
-    returnType: string,
-    query: Record<string, string>
-  ): Promise<string[]> => {
-    const params = new URLSearchParams({ ...query, returnType });
-    const res = await fetch(`/api/locations?${params.toString()}`);
-    const data = await res.json();
-    return data.locations.map((item: any) => item[returnType]);
-  };
 
   useEffect(() => {
     setLocation((prev) => ({

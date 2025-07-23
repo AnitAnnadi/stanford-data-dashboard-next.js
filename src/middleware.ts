@@ -4,6 +4,8 @@ import authorizeRoute from "./utils/middleware/authorizeRoute";
 
 export const middleware = async (request: NextRequest) => {
   try {
+    console.log("Middleware running on path:", request.nextUrl.pathname);
+
     const response = NextResponse.next();
     const { userId, role, isTeacher } = await validateUser(request, response);
     const authorizeResponse = await authorizeRoute(

@@ -57,3 +57,28 @@ model Location {
   district String?
   school String
 }
+
+enum SurveyTypes {
+  pre
+  post
+}
+
+type Option {
+  text String
+  code Int
+}
+
+type Question {
+  question String
+  options Option[]
+}
+
+model Form {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+  active Boolean @default(true)
+  type SurveyTypes
+  askForStudentName Boolean @default(false)
+  questions Question[]
+  createdAt DateTime @default(now())
+}

@@ -2,8 +2,21 @@
 
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { useFormStatus } from "react-dom";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { actionFunction } from "@/utils/types";
+import FormContainer from "../form/FormContainer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "../ui/button";
 
 type btnSize = "default" | "lg" | "sm";
 
@@ -13,11 +26,11 @@ type SubmitButtonProps = {
   size?: btnSize;
 };
 
-export function SubmitButton({
+export const SubmitButton = ({
   className = "",
   text = "submit",
   size = "lg",
-}: SubmitButtonProps) {
+}: SubmitButtonProps) => {
   const { pending } = useFormStatus();
   return (
     <Button
@@ -36,4 +49,37 @@ export function SubmitButton({
       )}
     </Button>
   );
-}
+};
+
+export const ConfirmBeforeProceedingBtn = ({
+  children,
+  text,
+  action,
+}: {
+  children: React.ReactNode;
+  text: string;
+  action: actionFunction;
+}) => {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure you want to proceed?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action is final and cannot be undone. Please make sure
+            you&apos;ve reviewed everything carefully before continuing.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <FormContainer action={action}>
+              <SubmitButton text={text} size="default" />
+            </FormContainer>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};

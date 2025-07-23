@@ -7,8 +7,8 @@ import { AlertCircleIcon } from "lucide-react";
 import ShowUserLocations from "@/components/settings/ShowUserLocations";
 
 const SettingsPage = async () => {
-  const { name, email, role, isTeacher } = await getUserFromDb();
-  const userLocations = await getUserLocations();
+  const { id, name, email, role, isTeacher } = await getUserFromDb();
+  const userLocations = await getUserLocations(id);
 
   const showAddUserLocation = isTeacher && role !== Roles.site;
 

@@ -1,13 +1,8 @@
 import React from "react";
 import { Card, CardContent, CardFooter } from "../ui/card";
-import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { UserLocationWithUser } from "@/utils/types";
-import LocationApproveDenyButton from "./LocationApproveDenyButton";
-import {
-  approveLocationRequest,
-  declineLocationRequest,
-} from "@/utils/actions";
+import LocationCardBtns from "./LocationCardBtns";
 
 const LocationCard = ({ location }: { location: UserLocationWithUser }) => {
   const isUSA = location.country === "United States";
@@ -42,21 +37,8 @@ const LocationCard = ({ location }: { location: UserLocationWithUser }) => {
         </div>
         <Separator />
       </CardContent>
-      <CardFooter className="gap-x-2">
-        <LocationApproveDenyButton
-          text="Approve Request"
-          action={approveLocationRequest.bind(null, {
-            userLocationId: location.id,
-          })}
-        />
-        <LocationApproveDenyButton
-          text="Decline Request"
-          variant="destructive"
-          action={declineLocationRequest.bind(null, {
-            userLocationId: location.id,
-          })}
-        />
-        <Button variant="secondary">Decline Request & Add Location</Button>
+      <CardFooter className="flex flex-wrap gap-2">
+        <LocationCardBtns locationId={location.id} />
       </CardFooter>
     </Card>
   );
