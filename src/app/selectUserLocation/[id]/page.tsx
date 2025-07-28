@@ -1,6 +1,8 @@
 import SelectUserLocationForm from "@/components/selectCreateLocation/SelectUserLocationForm";
+import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -8,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { getUserFromLocation, stanfordAddUserLocation } from "@/utils/actions";
 import { Roles } from "@prisma/client";
+import Link from "next/link";
 import React from "react";
 
 const StanfordSelectUserLocationPage = async ({
@@ -32,6 +35,13 @@ const StanfordSelectUserLocationPage = async ({
           <CardDescription>
             Select a location for <span className="capitalize">{name}</span>.
           </CardDescription>
+          <CardAction>
+            <Button variant="link" asChild>
+              <Link href={"/dashboard/manageLocations"}>
+                Go to Manage Locations
+              </Link>
+            </Button>
+          </CardAction>
         </CardHeader>
         <CardContent>
           <SelectUserLocationForm
