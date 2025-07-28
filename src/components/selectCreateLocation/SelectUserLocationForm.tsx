@@ -10,6 +10,8 @@ import MultiplePeriodsCheckbox from "./MultiplePeriodsCheckbox";
 import { Roles } from "@prisma/client";
 import { Input } from "../ui/input";
 import { actionFunction } from "@/utils/types";
+import { toast } from "sonner";
+import { redirect } from "next/navigation";
 
 const SelectUserLocationForm = ({
   role,
@@ -17,12 +19,14 @@ const SelectUserLocationForm = ({
   action,
   locationId,
   selectedUserCanAccessNonUS,
+  storeLocallyOnly = false,
 }: {
   role: Roles;
   isTeacher: boolean;
-  action: actionFunction;
+  action?: actionFunction;
   locationId?: string;
   selectedUserCanAccessNonUS?: boolean;
+  storeLocallyOnly?: boolean;
 }) => {
   const [userLocation, setUserLocation] = useState({
     country: "United States",
@@ -155,74 +159,106 @@ const SelectUserLocationForm = ({
     updateSchools();
   }, [userLocation.city]);
 
-  return (
-    <FormContainer action={action}>
-      <Input type="hidden" name="role" value={role} />
-      <Input
-        type="hidden"
-        name="isTeacher"
-        value={isTeacher ? "true" : "false"}
-      />
-      {role === Roles.stanford && (
-        <Input type="hidden" name="locationId" value={locationId} />
-      )}
-      <LocationComboBox
-        name="country"
-        value={userLocation.country}
-        onChange={(country) =>
-          setUserLocation((prev) => ({ ...prev, country }))
-        }
-        options={displayCountries}
-      />
-      {requireState && (
-        <LocationComboBox
-          name="state"
-          value={userLocation.state}
-          onChange={(state) => setUserLocation((prev) => ({ ...prev, state }))}
-          options={states}
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !userLocation.country ||
+      !userLocation.city ||
+      !userLocation.school ||
+      (userLocation.country === "United States" && !userLocation.state)
+    ) {
+      toast.error("Please fill out all required location fields");
+      return;
+    }
+
+    localStorage.setItem("studentLocation", JSON.stringify(userLocation));
+    toast.success("Successfully joined form");
+    redirect("/student/details/0/notapplicable");
+  };
+
+  const renderFormContents = () => {
+    return (
+      <>
+        <Input type="hidden" name="role" value={role} />
+        <Input
+          type="hidden"
+          name="isTeacher"
+          value={isTeacher ? "true" : "false"}
         />
-      )}
-      {requireCounty && (
+        {role === Roles.stanford && (
+          <Input type="hidden" name="locationId" value={locationId} />
+        )}
         <LocationComboBox
-          name="county"
-          value={userLocation.county}
-          onChange={(county) =>
-            setUserLocation((prev) => ({ ...prev, county }))
+          name="country"
+          value={userLocation.country}
+          onChange={(country) =>
+            setUserLocation((prev) => ({ ...prev, country }))
           }
-          options={counties}
+          options={displayCountries}
         />
-      )}
-      {requireDistrict && (
-        <LocationComboBox
-          name="district"
-          value={userLocation.district}
-          onChange={(district) =>
-            setUserLocation((prev) => ({ ...prev, district }))
-          }
-          options={districts}
-        />
-      )}
-      {requireCityAndSchool && (
-        <>
+        {requireState && (
           <LocationComboBox
-            name="city"
-            value={userLocation.city}
-            onChange={(city) => setUserLocation((prev) => ({ ...prev, city }))}
-            options={cities}
-          />
-          <LocationComboBox
-            name="school"
-            value={userLocation.school}
-            onChange={(school) =>
-              setUserLocation((prev) => ({ ...prev, school }))
+            name="state"
+            value={userLocation.state}
+            onChange={(state) =>
+              setUserLocation((prev) => ({ ...prev, state }))
             }
-            options={schools}
+            options={states}
           />
-        </>
-      )}
-      {role !== Roles.stanford && <MultiplePeriodsCheckbox />}
-      <SubmitButton text="add location" className="w-full mt-4" />
-    </FormContainer>
+        )}
+        {requireCounty && (
+          <LocationComboBox
+            name="county"
+            value={userLocation.county}
+            onChange={(county) =>
+              setUserLocation((prev) => ({ ...prev, county }))
+            }
+            options={counties}
+          />
+        )}
+        {requireDistrict && (
+          <LocationComboBox
+            name="district"
+            value={userLocation.district}
+            onChange={(district) =>
+              setUserLocation((prev) => ({ ...prev, district }))
+            }
+            options={districts}
+          />
+        )}
+        {requireCityAndSchool && (
+          <>
+            <LocationComboBox
+              name="city"
+              value={userLocation.city}
+              onChange={(city) =>
+                setUserLocation((prev) => ({ ...prev, city }))
+              }
+              options={cities}
+            />
+            <LocationComboBox
+              name="school"
+              value={userLocation.school}
+              onChange={(school) =>
+                setUserLocation((prev) => ({ ...prev, school }))
+              }
+              options={schools}
+            />
+          </>
+        )}
+        {role !== Roles.stanford && <MultiplePeriodsCheckbox />}
+        <SubmitButton text="add location" className="w-full mt-4" />
+      </>
+    );
+  };
+
+  return storeLocallyOnly ? (
+    <form onSubmit={handleSubmit}>{renderFormContents()}</form>
+  ) : action ? (
+    <FormContainer action={action}>{renderFormContents()}</FormContainer>
+  ) : (
+    <></>
   );
 };
 

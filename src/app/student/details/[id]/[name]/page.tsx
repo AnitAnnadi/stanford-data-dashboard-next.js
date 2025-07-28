@@ -1,6 +1,7 @@
 import StudentDetailsForm from "@/components/studentDetails/StudentDetailsForm";
 import { Card, CardContent } from "@/components/ui/card";
-import { getUserLocations } from "@/utils/actions";
+import { getActiveForms, getUserLocations } from "@/utils/actions";
+import { UserLocation } from "@prisma/client";
 
 const DetailsPage = async ({
   params,
@@ -9,18 +10,26 @@ const DetailsPage = async ({
 }) => {
   const { id: teacherId, name } = await params;
   const decodedName = decodeURIComponent(name);
+  const joinedWithTeacherCode = teacherId !== "0" && name !== "notapplicable";
+  const title = joinedWithTeacherCode
+    ? `You have joined ${decodedName}'s class`
+    : `Please enter the details below to continue`;
 
-  const teacherLocations = await getUserLocations(teacherId);
-  console.log(teacherLocations);
+  const formTitles = await getActiveForms();
+  let teacherLocations: UserLocation[] = [];
+  if (joinedWithTeacherCode) {
+    teacherLocations = await getUserLocations(teacherId);
+  }
 
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
         <CardContent>
-          <h3 className="font-semibold mb-6">
-            You have joined {decodedName}&apos;s class
-          </h3>
-          <StudentDetailsForm teacherLocations={teacherLocations} />
+          <h3 className="font-semibold mb-6">{title}</h3>
+          <StudentDetailsForm
+            teacherLocations={teacherLocations}
+            formTitles={[...formTitles]}
+          />
         </CardContent>
       </Card>
     </div>

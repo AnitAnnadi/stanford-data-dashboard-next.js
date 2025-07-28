@@ -127,3 +127,17 @@ export const updateForm = async (prevState: any, formData: FormData) => {
     return renderError(error);
   }
 };
+
+export const getActiveForms = async () => {
+  const activeForms = await prisma.form.findMany({
+    where: {
+      active: true,
+    },
+    select: {
+      title: true,
+    },
+  });
+
+  const titles = activeForms.map((form) => form.title);
+  return new Set(titles);
+};

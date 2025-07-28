@@ -31,8 +31,6 @@ const SelectInput = ({
 }) => {
   const [value, setValue] = useState(defaultValue || "");
 
-  console.log(value);
-
   return (
     <>
       <Input name={name} type="hidden" value={value} disabled={disabled} />

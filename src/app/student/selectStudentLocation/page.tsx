@@ -1,0 +1,34 @@
+import SelectUserLocationForm from "@/components/selectCreateLocation/SelectUserLocationForm";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Roles } from "@prisma/client";
+import React from "react";
+
+const SelectStudentLocationPage = () => {
+  return (
+    <div className="grid h-lvh place-items-center">
+      <Card className="w-full max-w-lg">
+        <CardHeader>
+          <CardTitle className="text-3xl font-medium">
+            Select a Location
+          </CardTitle>
+          <CardDescription>Please select your school location.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SelectUserLocationForm
+            role={Roles.stanford}
+            isTeacher={false}
+            storeLocallyOnly={true}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default SelectStudentLocationPage;

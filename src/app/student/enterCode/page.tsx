@@ -29,7 +29,7 @@ const EnterCodePage = () => {
         <CardFooter>
           Don&apos;t have a teacher code?
           <Button variant="link" className="pl-1" asChild>
-            <Link href="/student/selectStudentLoc">Click here</Link>
+            <Link href="/student/selectStudentLocation">Click here</Link>
           </Button>
         </CardFooter>
       </Card>
