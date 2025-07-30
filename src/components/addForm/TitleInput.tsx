@@ -5,8 +5,10 @@ import { useState } from "react";
 
 const TitleInput = ({
   defaultValue = "Untitled form",
+  disabled = false,
 }: {
   defaultValue?: string;
+  disabled?: boolean;
 }) => {
   const [title, setTitle] = useState(defaultValue);
 
@@ -19,7 +21,8 @@ const TitleInput = ({
           placeholder="Form title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full text-3xl pb-2 border-b-2 transition-colors duration-200 ease-in-out focus:border-primary focus:outline-none"
+          className={`w-full text-3xl pb-2 transition-colors duration-200 ease-in-out focus:border-primary focus:outline-none ${disabled ? "" : "border-b-2"}`}
+          disabled={disabled}
           required
         />
       </CardContent>

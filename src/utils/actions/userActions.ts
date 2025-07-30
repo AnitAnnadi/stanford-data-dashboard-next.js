@@ -52,6 +52,7 @@ export const getUserFromDb = async () => {
 
 export const findUserByCode = async (prevState: any, formData: FormData) => {
   try {
+    const formId = formData.get("formId") as string;
     const code = formData.get("code") as string;
 
     const teacher = await prisma.user.findUnique({
@@ -64,8 +65,8 @@ export const findUserByCode = async (prevState: any, formData: FormData) => {
     }
 
     return {
-      message: "Successfully joined form",
-      redirect: `/student/details/${teacher.id}/${teacher.name}`,
+      message: "",
+      redirect: `/student/details/${formId}/${teacher.id}/${teacher.name}`,
     };
   } catch (error) {
     return renderError(error);

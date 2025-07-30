@@ -29,7 +29,7 @@ const SelectInput = ({
   disabled?: boolean;
   withMargin?: boolean;
 }) => {
-  const [value, setValue] = useState(defaultValue || "");
+  const [value, setValue] = useState(defaultValue || undefined);
 
   return (
     <>

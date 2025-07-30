@@ -46,6 +46,9 @@ const FormsTable = ({ forms }: { forms: Form[] }) => {
               </TableRow>
             ) : (
               filteredForms.map((form) => {
+                const formType =
+                  form.type === "pre" ? "pre-survey" : "post-survey";
+
                 return (
                   <TableRow
                     key={form.id}
@@ -54,15 +57,17 @@ const FormsTable = ({ forms }: { forms: Form[] }) => {
                     <TableCell className="overflow-hidden">
                       {form.title}
                     </TableCell>
-                    <TableCell>
-                      {form.type === "pre" ? "pre-survey" : "post-survey"}
-                    </TableCell>
+                    <TableCell>{formType}</TableCell>
                     <TableCell>{form.active ? "active" : "inactive"}</TableCell>
                     <TableCell>
                       {new Date(form.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <RowActions formId={form.id} />
+                      <RowActions
+                        formId={form.id}
+                        formTitle={form.title}
+                        formType={formType}
+                      />
                     </TableCell>
                   </TableRow>
                 );

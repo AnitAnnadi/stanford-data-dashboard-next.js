@@ -18,6 +18,7 @@ const SelectUserLocationForm = ({
   isTeacher,
   action,
   locationId,
+  formId,
   selectedUserCanAccessNonUS,
   storeLocallyOnly = false,
 }: {
@@ -25,6 +26,7 @@ const SelectUserLocationForm = ({
   isTeacher: boolean;
   action?: actionFunction;
   locationId?: string;
+  formId?: string;
   selectedUserCanAccessNonUS?: boolean;
   storeLocallyOnly?: boolean;
 }) => {
@@ -173,11 +175,12 @@ const SelectUserLocationForm = ({
     }
 
     localStorage.setItem("studentLocation", JSON.stringify(userLocation));
-    toast.success("Successfully joined form");
-    redirect("/student/details/0/notapplicable");
+    redirect(`/student/details/${formId}/0/notapplicable`);
   };
 
   const renderFormContents = () => {
+    const submitBtnText = storeLocallyOnly ? "next" : "add location";
+
     return (
       <>
         <Input type="hidden" name="role" value={role} />
@@ -248,7 +251,7 @@ const SelectUserLocationForm = ({
           </>
         )}
         {role !== Roles.stanford && <MultiplePeriodsCheckbox />}
-        <SubmitButton text="add location" className="w-full mt-4" />
+        <SubmitButton text={submitBtnText} className="w-full mt-4" />
       </>
     );
   };

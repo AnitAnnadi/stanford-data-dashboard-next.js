@@ -1,14 +1,21 @@
+"use client";
+
 import SelectInput from "../form/SelectInput";
-import { UserLocation } from "@prisma/client";
+import { Form, UserLocation } from "@prisma/client";
 import SchoolAndPeriodInput from "./SchoolAndPeriodInput";
 import { SubmitButton } from "../form/Buttons";
+import { redirect } from "next/navigation";
 
 const StudentDetailsForm = ({
   teacherLocations,
-  formTitles,
+  formTitle,
+  formType,
+  routeParams,
 }: {
   teacherLocations: UserLocation[];
-  formTitles: string[];
+  formTitle: string;
+  formType: Form["type"];
+  routeParams: { formId: string; teacherId: string; name: string };
 }) => {
   const grades = Array.from({ length: 12 }, (_, i) => {
     return { text: (i + 1).toString(), value: (i + 1).toString() };
@@ -16,18 +23,35 @@ const StudentDetailsForm = ({
   grades.unshift({ text: "k", value: "k" });
   grades.push({ text: "college or above", value: "college or above" });
 
-  const formOptions = formTitles.map((title) => ({
-    text: title,
-    value: title,
-  }));
+  const formOptions = [{ text: formTitle, value: formTitle }];
+
+  console.log(teacherLocations);
 
   const types = [
     { text: "before lesson", value: "pre" },
     { text: "after lesson", value: "post" },
   ];
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const data = Object.fromEntries(formData);
+
+    const studentDetails = {
+      teacherId: routeParams.teacherId,
+      formId: routeParams.formId,
+      locationId: data?.locationId,
+      period: data?.period,
+      grade: data.grade,
+    };
+
+    localStorage.setItem("studentDetails", JSON.stringify(studentDetails));
+    redirect(`/student/form/${routeParams.formId}`);
+  };
+
   return (
-    <form>
+    <form onSubmit={handleSubmit}>
       {teacherLocations.length > 0 && (
         <SchoolAndPeriodInput teacherLocations={teacherLocations} />
       )}
@@ -40,13 +64,17 @@ const StudentDetailsForm = ({
         name="title"
         placeholder="select your form"
         options={formOptions}
+        defaultValue={formTitle}
+        disabled={true}
       />
       <SelectInput
         name="type"
         placeholder="select when you are taking this form"
         options={types}
+        defaultValue={formType}
+        disabled={true}
       />
-      <SubmitButton className="w-full mt-4" />
+      <SubmitButton text="next" className="w-full mt-4" />
     </form>
   );
 };

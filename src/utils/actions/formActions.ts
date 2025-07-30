@@ -141,3 +141,29 @@ export const getActiveForms = async () => {
   const titles = activeForms.map((form) => form.title);
   return new Set(titles);
 };
+
+export const getSingleActiveForm = async (formId: string) => {
+  const form = await prisma.form.findUnique({
+    where: {
+      id: formId,
+      active: true,
+    },
+  });
+
+  if (form) {
+    return form;
+  }
+
+  return redirect("/");
+};
+
+export const submitForm = async (prevState: any, formData: FormData) => {
+  try {
+    const rawData = Object.fromEntries(formData);
+    console.log(rawData);
+
+    return { message: "Successfully submited form" };
+  } catch (error) {
+    return renderError(error);
+  }
+};

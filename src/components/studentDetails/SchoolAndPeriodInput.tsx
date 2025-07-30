@@ -37,7 +37,7 @@ const SchoolAndPeriodInput = ({
   return (
     <div>
       <Select
-        name="location"
+        name="locationId"
         onValueChange={(value) => onLocationValueChange(value)}
         required
       >

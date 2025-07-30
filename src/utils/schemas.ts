@@ -34,7 +34,7 @@ export const registerSchema = z
         message: "Password must be less than 20 characters",
       }),
     confirmPassword: z.string(),
-    country: z.string(),
+    country: z.string().min(1, "Country is a required field"),
     role: z.enum([
       "teacher",
       "site",
@@ -74,7 +74,7 @@ export const selectUserLocationSchema = z
   .object({
     role: z.enum(["teacher", "site", "district", "county", "state", "country"]),
     isTeacher: z.enum(["true", "false"]).transform((val) => val === "true"),
-    country: z.string().min(1, "Country cannnot be empty"),
+    country: z.string().min(1, "Country is a required field"),
     state: z.string().optional(),
     county: z.string().optional(),
     city: z.string().optional(),
@@ -150,7 +150,7 @@ export const createLocationSchema = z
   .object({
     role: z.enum(["teacher", "site", "district", "county", "state"]),
     isTeacher: z.enum(["true", "false"]).transform((val) => val === "true"),
-    country: z.string().min(1, "Country cannot be empty"),
+    country: z.string().min(1, "Country is a required field"),
     state: z.string().optional(),
     county: z.string().optional(),
     city: z
@@ -292,10 +292,10 @@ export const stanfordSelectUserLocationSchema = z
   .object({
     role: z.enum(["stanford"]),
     locationId: z.string(),
-    country: z.string(),
+    country: z.string().min(1, "Country is a required field"),
     state: z.string().optional(),
-    city: z.string(),
-    school: z.string(),
+    city: z.string().min(1, "City is a required field"),
+    school: z.string().min(1, "School is a required field"),
   })
   .superRefine((data, ctx) => {
     if (data.country === "United States" && !data.state) {

@@ -1,21 +1,23 @@
 import StudentDetailsForm from "@/components/studentDetails/StudentDetailsForm";
 import { Card, CardContent } from "@/components/ui/card";
-import { getActiveForms, getUserLocations } from "@/utils/actions";
+import { getSingleActiveForm, getUserLocations } from "@/utils/actions";
 import { UserLocation } from "@prisma/client";
 
 const DetailsPage = async ({
   params,
 }: {
-  params: { id: string; name: string };
+  params: { formId: string; teacherId: string; name: string };
 }) => {
-  const { id: teacherId, name } = await params;
+  const routeParams = await params;
+  const { formId, teacherId, name } = routeParams;
+
   const decodedName = decodeURIComponent(name);
   const joinedWithTeacherCode = teacherId !== "0" && name !== "notapplicable";
   const title = joinedWithTeacherCode
     ? `You have joined ${decodedName}'s class`
-    : `Please enter the details below to continue`;
+    : `Please enter your grade to continue`;
 
-  const formTitles = await getActiveForms();
+  const form = await getSingleActiveForm(formId);
   let teacherLocations: UserLocation[] = [];
   if (joinedWithTeacherCode) {
     teacherLocations = await getUserLocations(teacherId);
@@ -28,7 +30,9 @@ const DetailsPage = async ({
           <h3 className="font-semibold mb-6">{title}</h3>
           <StudentDetailsForm
             teacherLocations={teacherLocations}
-            formTitles={[...formTitles]}
+            formTitle={form.title}
+            formType={form.type}
+            routeParams={routeParams}
           />
         </CardContent>
       </Card>

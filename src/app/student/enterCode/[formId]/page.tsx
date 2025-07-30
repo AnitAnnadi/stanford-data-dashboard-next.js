@@ -12,8 +12,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import FormContainer from "@/components/form/FormContainer";
 import { findUserByCode } from "@/utils/actions";
+import { Input } from "@/components/ui/input";
 
-const EnterCodePage = () => {
+const EnterCodePage = async ({ params }: { params: { formId: string } }) => {
+  const { formId } = await params;
+
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
@@ -22,14 +25,17 @@ const EnterCodePage = () => {
         </CardHeader>
         <CardContent>
           <FormContainer action={findUserByCode}>
+            <Input name="formId" type="hidden" value={formId} />
             <FormInput name="code" type="text" label="teacher code" />
-            <SubmitButton text="go to form" className="w-full" />
+            <SubmitButton text="next" className="w-full" />
           </FormContainer>
         </CardContent>
         <CardFooter>
           Don&apos;t have a teacher code?
           <Button variant="link" className="pl-1" asChild>
-            <Link href="/student/selectStudentLocation">Click here</Link>
+            <Link href={`/student/selectStudentLocation/${formId}`}>
+              Click here
+            </Link>
           </Button>
         </CardFooter>
       </Card>

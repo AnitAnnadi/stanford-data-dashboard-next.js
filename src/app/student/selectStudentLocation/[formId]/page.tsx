@@ -9,7 +9,13 @@ import {
 import { Roles } from "@prisma/client";
 import React from "react";
 
-const SelectStudentLocationPage = () => {
+const SelectStudentLocationPage = async ({
+  params,
+}: {
+  params: { formId: string };
+}) => {
+  const { formId } = await params;
+
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
@@ -23,6 +29,7 @@ const SelectStudentLocationPage = () => {
           <SelectUserLocationForm
             role={Roles.stanford}
             isTeacher={false}
+            formId={formId}
             storeLocallyOnly={true}
           />
         </CardContent>

@@ -15,7 +15,7 @@ import {
   deleteOptionFn,
 } from "@/utils/types";
 
-const Question = ({
+const QuestionInput = ({
   question,
   updateQuestion,
   deleteQuestion,
@@ -79,4 +79,4 @@ const Question = ({
   );
 };
 
-export default Question;
+export default QuestionInput;

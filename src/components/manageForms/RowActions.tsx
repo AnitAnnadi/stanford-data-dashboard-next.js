@@ -10,14 +10,40 @@ import { CiEdit } from "react-icons/ci";
 import { ConfirmBeforeProceedingBtn } from "../form/Buttons";
 import { deleteForm } from "@/utils/actions";
 import { CgTrash } from "react-icons/cg";
+import { IoCopyOutline } from "react-icons/io5";
+import { toast } from "sonner";
 
-const RowActions = ({ formId }: { formId: string }) => {
+const RowActions = ({
+  formId,
+  formTitle,
+  formType,
+}: {
+  formId: string;
+  formTitle: string;
+  formType: "pre-survey" | "post-survey";
+}) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
         <HiOutlineDotsHorizontal className="text-lg" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" side="bottom">
+        <DropdownMenuItem>
+          <button
+            className="flex items-center gap-2"
+            onClick={() => {
+              navigator.clipboard.writeText(
+                `${window.location.origin}/student/enterCode/${formId}`
+              );
+              toast.success(
+                `Copied ${formType} link for "${formTitle}" to clipboard`
+              );
+            }}
+          >
+            <IoCopyOutline />
+            Copy Link
+          </button>
+        </DropdownMenuItem>
         <Link href={`/dashboard/manageForms/editForm/${formId}`}>
           <DropdownMenuItem>
             <CiEdit />
