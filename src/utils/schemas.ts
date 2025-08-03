@@ -1,4 +1,4 @@
-import { z, ZodSchema, ZodTypeDef } from "zod";
+import { number, z, ZodSchema, ZodTypeDef } from "zod";
 import { getRequiredLocationFields } from "./helpers";
 
 export function validateWithZodSchema<T>(
@@ -210,6 +210,7 @@ const OptionSchema = z.object({
 });
 
 const QuestionSchema = z.object({
+  id: z.string().min(1, "Question id is a required field"),
   question: z.string().trim().min(1, "Question cannot be empty"),
   options: z.array(OptionSchema),
 });
@@ -219,12 +220,20 @@ export const addFormSchema = z
     title: z.string().trim().min(1, "Title cannot be empty"),
     type: z.enum(["pre", "post"]),
     active: z.enum(["true", "false"]).transform((val) => val === "true"),
-    askForStudentName: z
+    provideCertificate: z
       .enum(["true", "false"])
       .transform((val) => val === "true"),
     questions: z.array(QuestionSchema),
   })
   .superRefine((data, ctx) => {
+    if (data.type === "pre" && data.provideCertificate) {
+      ctx.addIssue({
+        path: ["provideCertifcate"],
+        code: z.ZodIssueCode.custom,
+        message: "You cannot enable certificates for pre-surveys",
+      });
+    }
+
     if (data.questions.length === 0) {
       ctx.addIssue({
         path: ["questions"],
@@ -280,10 +289,10 @@ export const addFormSchema = z
   });
 
 export const updateFormSchema = z.object({
-  formId: z.string(),
+  formId: z.string().min(1, "Form id is a required field"),
   title: z.string().trim().min(1, "Title cannot be empty"),
   active: z.enum(["true", "false"]).transform((val) => val === "true"),
-  askForStudentName: z
+  provideCertificate: z
     .enum(["true", "false"])
     .transform((val) => val === "true"),
 });
@@ -291,7 +300,7 @@ export const updateFormSchema = z.object({
 export const stanfordSelectUserLocationSchema = z
   .object({
     role: z.enum(["stanford"]),
-    locationId: z.string(),
+    locationId: z.string().min(1, "Location id is a required field"),
     country: z.string().min(1, "Country is a required field"),
     state: z.string().optional(),
     city: z.string().min(1, "City is a required field"),
@@ -301,6 +310,78 @@ export const stanfordSelectUserLocationSchema = z
     if (data.country === "United States" && !data.state) {
       ctx.addIssue({
         path: ["state"],
+        code: z.ZodIssueCode.custom,
+        message: "State is required for United States locations",
+      });
+    }
+  });
+
+export const AnswerSchema = z.object({
+  questionId: z.string().min(1, "Question id is a required field"),
+  optionCode: z.number(),
+});
+
+export const createResponseWithTeacherSchema = z.object({
+  formId: z.string().min(1, "Form id is a required field"),
+  teacherId: z.string().min(1, "Teacher id is a required field"),
+  details: z.object({
+    locationId: z.string().min(1, "Location id is a required field"),
+    period: z
+      .enum(["0", "1", "2", "3", "4", "5", "6", "7", "8", ""])
+      .transform((val) => (val === "" ? null : Number(val))),
+    grade: z.enum([
+      "k",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "college or above",
+    ]),
+  }),
+  answers: z.array(AnswerSchema),
+});
+
+export const createResponseWithoutTeacherSchema = z
+  .object({
+    formId: z.string().min(1, "Form id is a required field"),
+    location: z.object({
+      country: z.string().min(1, "Country is a required field"),
+      state: z.string().optional(),
+      city: z.string().min(1, "City is a required field"),
+      school: z.string().min(1, "School is a required field"),
+    }),
+    details: z.object({
+      grade: z.enum([
+        "k",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "college or above",
+      ]),
+    }),
+    answers: z.array(AnswerSchema),
+  })
+  .superRefine((data, ctx) => {
+    if (data.location.country === "United States" && !data.location.state) {
+      ctx.addIssue({
+        path: ["location", "state"],
         code: z.ZodIssueCode.custom,
         message: "State is required for United States locations",
       });

@@ -10,13 +10,23 @@ import {
 } from "../schemas";
 import { ensureStanfordUser } from "./userActions";
 import { redirect } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
+import { question } from "../types";
 
 export const addForm = async (prevState: any, formData: FormData) => {
   try {
     await ensureStanfordUser();
 
     const rawData = Object.fromEntries(formData);
-    rawData.questions = JSON.parse(rawData.questions as string);
+    console.log(rawData);
+
+    rawData.questions = JSON.parse(rawData.questions as string).map(
+      (question: question) => {
+        const id = uuidv4();
+
+        return { ...question, id };
+      }
+    );
     const validatedFields = validateWithZodSchema(addFormSchema, rawData);
 
     const dbForm = await prisma.form.findFirst({
@@ -108,6 +118,20 @@ export const updateForm = async (prevState: any, formData: FormData) => {
     const rawData = Object.fromEntries(formData.entries());
     const validatedFields = validateWithZodSchema(updateFormSchema, rawData);
 
+    const form = await prisma.form.findUnique({
+      where: {
+        id: validatedFields.formId,
+      },
+    });
+
+    if (!form) {
+      throw Error("Invalid form id");
+    }
+
+    if (form.type === "pre" && validatedFields.provideCertificate) {
+      throw Error("You cannot enable certificates for pre-surveys");
+    }
+
     await prisma.form.update({
       where: {
         id: validatedFields.formId,
@@ -115,7 +139,7 @@ export const updateForm = async (prevState: any, formData: FormData) => {
       data: {
         title: validatedFields.title,
         active: validatedFields.active,
-        askForStudentName: validatedFields.askForStudentName,
+        provideCertificate: validatedFields.provideCertificate,
       },
     });
 
@@ -155,15 +179,4 @@ export const getSingleActiveForm = async (formId: string) => {
   }
 
   return redirect("/");
-};
-
-export const submitForm = async (prevState: any, formData: FormData) => {
-  try {
-    const rawData = Object.fromEntries(formData);
-    console.log(rawData);
-
-    return { message: "Successfully submited form" };
-  } catch (error) {
-    return renderError(error);
-  }
 };

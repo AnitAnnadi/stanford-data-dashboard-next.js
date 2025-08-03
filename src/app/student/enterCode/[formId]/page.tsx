@@ -11,11 +11,12 @@ import { SubmitButton } from "@/components/form/Buttons";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import FormContainer from "@/components/form/FormContainer";
-import { findUserByCode } from "@/utils/actions";
+import { findUserByCode, getSingleActiveForm } from "@/utils/actions";
 import { Input } from "@/components/ui/input";
 
 const EnterCodePage = async ({ params }: { params: { formId: string } }) => {
   const { formId } = await params;
+  const { provideCertificate } = await getSingleActiveForm(formId);
 
   return (
     <div className="grid h-lvh place-items-center">
@@ -30,14 +31,16 @@ const EnterCodePage = async ({ params }: { params: { formId: string } }) => {
             <SubmitButton text="next" className="w-full" />
           </FormContainer>
         </CardContent>
-        <CardFooter>
-          Don&apos;t have a teacher code?
-          <Button variant="link" className="pl-1" asChild>
-            <Link href={`/student/selectStudentLocation/${formId}`}>
-              Click here
-            </Link>
-          </Button>
-        </CardFooter>
+        {!provideCertificate && (
+          <CardFooter>
+            Don&apos;t have a teacher code?
+            <Button variant="link" className="pl-1" asChild>
+              <Link href={`/student/selectStudentLocation/${formId}`}>
+                Click here
+              </Link>
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );

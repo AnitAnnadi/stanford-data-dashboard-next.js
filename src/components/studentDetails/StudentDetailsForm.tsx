@@ -39,15 +39,13 @@ const StudentDetailsForm = ({
     const data = Object.fromEntries(formData);
 
     const studentDetails = {
-      teacherId: routeParams.teacherId,
-      formId: routeParams.formId,
       locationId: data?.locationId,
-      period: data?.period,
+      period: data?.period ?? "",
       grade: data.grade,
     };
 
     localStorage.setItem("studentDetails", JSON.stringify(studentDetails));
-    redirect(`/student/form/${routeParams.formId}`);
+    redirect(`/student/form/${routeParams.formId}/${routeParams.teacherId}`);
   };
 
   return (

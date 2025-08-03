@@ -1,19 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import FormContainer from "../form/FormContainer";
 import { SubmitButton } from "../form/Buttons";
 import { Form } from "@prisma/client";
 import Question from "./Question";
-import { submitForm } from "@/utils/actions";
 import { Input } from "../ui/input";
+import {
+  createResponseWithoutTeacher,
+  createResponseWithTeacher,
+} from "@/utils/actions";
 
-const StudentForm = ({ questions }: { questions: Form["questions"] }) => {
-  const studentLocation = localStorage.getItem("studentLocation") ?? "";
-  const studentDetails = localStorage.getItem("studentDetails") as string;
+const StudentForm = ({
+  questions,
+  formId,
+  teacherId,
+}: {
+  questions: Form["questions"];
+  formId: string;
+  teacherId: string;
+}) => {
+  const joinedWithTeacherCode = teacherId !== "0";
+  const [studentLocation, setStudentLocation] = useState("");
+  const [studentDetails, setStudentDetails] = useState("");
+
+  useEffect(() => {
+    setStudentLocation(localStorage.getItem("studentLocation") ?? "");
+    setStudentDetails(localStorage.getItem("studentDetails") ?? "");
+  }, []);
+
+  if (!studentDetails) return;
 
   return (
-    <FormContainer action={submitForm}>
+    <FormContainer
+      action={
+        joinedWithTeacherCode
+          ? createResponseWithTeacher
+          : createResponseWithoutTeacher
+      }
+    >
+      <Input name="formId" type="hidden" value={formId} />
+      <Input name="teacherId" type="hidden" value={teacherId} />
       <Input name="location" type="hidden" value={studentLocation} />
       <Input name="details" type="hidden" value={studentDetails} />
       {questions.map((question, i) => {

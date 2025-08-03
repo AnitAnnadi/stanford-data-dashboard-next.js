@@ -16,7 +16,7 @@ const Question = ({
     <Card className="mt-4">
       <CardContent className="space-y-4">
         <h3 className="text-lg">{question.question}</h3>
-        <RadioGroup disabled={disabled} name={question.question}>
+        <RadioGroup disabled={disabled} name={question.id}>
           {question.options.map((option, i) => {
             const id = uuidv4();
 

@@ -2,13 +2,17 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
+import { Button } from "../ui/button";
+import Link from "next/link";
 
 const TitleInput = ({
   defaultValue = "Untitled form",
   disabled = false,
+  description,
 }: {
   defaultValue?: string;
   disabled?: boolean;
+  description?: string;
 }) => {
   const [title, setTitle] = useState(defaultValue);
 
@@ -25,6 +29,14 @@ const TitleInput = ({
           disabled={disabled}
           required
         />
+        {description && (
+          <div>
+            <p className="mt-4">{description}</p>
+            <Button variant="link" className="mt-2 pl-0" asChild>
+              <Link href="/">Go to Homepage</Link>
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

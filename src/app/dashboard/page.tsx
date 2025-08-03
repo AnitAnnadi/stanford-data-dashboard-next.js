@@ -1,18 +1,22 @@
 import HealthyFutures from "@/components/dashboard/HealthyFutures";
 import InfoCard from "@/components/dashboard/InfoCard";
-import { getUserFromDb } from "@/utils/actions";
+import { getResponsesWithTeacherCount, getUserFromDb } from "@/utils/actions";
 
 const DashboardPage = async () => {
   const { code } = await getUserFromDb();
+  const { numPreResponses, numPostResponses } =
+    await getResponsesWithTeacherCount();
 
   return (
     <>
-      <div className="grid md:grid-cols-2 items-center gap-4">
-        <InfoCard data={code} caption="teacher code" />
-        <InfoCard data="11292" caption="total responses" />
+      <InfoCard data={code} caption="teacher code" />
+      <div className="grid md:grid-cols-2 items-center gap-4 mt-4">
+        <InfoCard data={`${numPreResponses}`} caption="pre-survey responses" />
+        <InfoCard
+          data={`${numPostResponses}`}
+          caption="post-survey responses"
+        />
       </div>
-      <HealthyFutures title="Students Who Completed Healthy Futures: Tobacco/Nicotine/Vaping" />
-      <HealthyFutures title="Students Who Completed Healthy Futures: Cannabis" />
     </>
   );
 };

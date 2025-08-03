@@ -9,7 +9,7 @@ import React from "react";
 
 const EditFormPage = async ({ params }: { params: { id: string } }) => {
   const { id: formId } = await params;
-  const { title, type, active, askForStudentName, questions } =
+  const { title, type, active, provideCertificate, questions } =
     await getSingleForm(formId);
 
   return (
@@ -20,7 +20,7 @@ const EditFormPage = async ({ params }: { params: { id: string } }) => {
         defaultValues={{
           type,
           active: active ? "true" : "false",
-          askForStudentName: askForStudentName ? "true" : "false",
+          provideCertificate: provideCertificate ? "true" : "false",
         }}
         disableType={true}
       />

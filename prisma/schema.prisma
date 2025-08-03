@@ -32,6 +32,7 @@ model User {
   isTeacher Boolean
   code String @unique
   userLocations UserLocation[]
+  responsesWithTeacher ResponseWithTeacher[]
 }
 
 model UserLocation {
@@ -46,6 +47,7 @@ model UserLocation {
   school String?
   multiplePeriods Boolean @default(false)
   approved Boolean @default(true)
+  responsesWithTeacher ResponseWithTeacher[]
 }
 
 model Location {
@@ -56,6 +58,7 @@ model Location {
   city String
   district String?
   school String
+  responsesWithoutTeacher ResponseWithoutTeacher[]
 }
 
 enum SurveyTypes {
@@ -69,6 +72,7 @@ type Option {
 }
 
 type Question {
+  id String
   question String
   options Option[]
 }
@@ -78,7 +82,39 @@ model Form {
   title String
   active Boolean @default(true)
   type SurveyTypes
-  askForStudentName Boolean @default(false)
+  provideCertificate Boolean @default(false)
   questions Question[]
+  createdAt DateTime @default(now())
+  responsesWithTeacher ResponseWithTeacher[]
+  responsesWithoutTeacher ResponseWithoutTeacher[]
+}
+
+type Answer {
+  questionId String
+  optionCode Int
+}
+
+model ResponseWithTeacher {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  form Form @relation(fields: [formId], references: [id])
+  formId String @db.ObjectId
+  teacher User @relation(fields: [teacherId], references: [id])
+  teacherId String @db.ObjectId
+  teacherLocation UserLocation @relation(fields: [teacherLocationId], references: [id])
+  teacherLocationId String @db.ObjectId
+  grade String
+  period Int?
+  answers Answer[]
+  createdAt DateTime @default(now())
+}
+
+model ResponseWithoutTeacher {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  form Form @relation(fields: [formId], references: [id])
+  formId String @db.ObjectId
+  location Location @relation(fields: [locationId], references: [id])
+  locationId String @db.ObjectId
+  grade String
+  answers Answer[]
   createdAt DateTime @default(now())
 }

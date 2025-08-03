@@ -5,7 +5,7 @@ import SelectInput from "../form/SelectInput";
 type DefaultValues = {
   type?: string;
   active?: string;
-  askForStudentName?: string;
+  provideCertificate?: string;
 };
 
 const FormDetailsInput = ({
@@ -20,7 +20,7 @@ const FormDetailsInput = ({
     { text: "post-survey", value: "post" },
   ];
 
-  const askForName = [
+  const provideCertificateOptions = [
     { text: "yes", value: "true" },
     { text: "no", value: "false" },
   ];
@@ -49,11 +49,11 @@ const FormDetailsInput = ({
           options={statuses}
         />
         <SelectInput
-          name="askForStudentName"
-          label="ask for student name"
-          placeholder="should this form ask for student's name?"
-          defaultValue={defaultValues.askForStudentName}
-          options={askForName}
+          name="provideCertificate"
+          label="provide certificate"
+          placeholder="should students recieve a certificate after submitting?"
+          defaultValue={defaultValues.provideCertificate}
+          options={provideCertificateOptions}
         />
       </CardContent>
     </Card>
