@@ -7,6 +7,8 @@ import { Roles } from "@prisma/client";
 import { attachCookie, createJWT } from "../attatchCookies";
 import { accessPayload, refreshPayload } from "../types";
 import { renderError } from "../helpers";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const register = async (prevState: any, formData: FormData) => {
   try {
@@ -88,4 +90,13 @@ export const login = async (prevState: any, formData: FormData) => {
   } catch (error) {
     return renderError(error);
   }
+};
+
+export const logout = async () => {
+  const cookieStore = await cookies();
+
+  cookieStore.delete("refresh");
+  cookieStore.delete("access");
+
+  redirect("/login");
 };

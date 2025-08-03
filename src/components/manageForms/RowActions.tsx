@@ -28,21 +28,18 @@ const RowActions = ({
         <HiOutlineDotsHorizontal className="text-lg" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" side="bottom">
-        <DropdownMenuItem>
-          <button
-            className="flex items-center gap-2"
-            onClick={() => {
-              navigator.clipboard.writeText(
-                `${window.location.origin}/student/enterCode/${formId}`
-              );
-              toast.success(
-                `Copied ${formType} link for "${formTitle}" to clipboard`
-              );
-            }}
-          >
-            <IoCopyOutline />
-            Copy Link
-          </button>
+        <DropdownMenuItem
+          onSelect={() => {
+            navigator.clipboard.writeText(
+              `${window.location.origin}/student/enterCode/${formId}`
+            );
+            toast.success(
+              `Copied ${formType} link for "${formTitle}" to clipboard`
+            );
+          }}
+        >
+          <IoCopyOutline />
+          Copy Link
         </DropdownMenuItem>
         <Link href={`/dashboard/manageForms/editForm/${formId}`}>
           <DropdownMenuItem>

@@ -19,6 +19,9 @@ const getUser = async (userId: string, requestUrl: string) => {
 const validateUser = async (request: NextRequest, response: NextResponse) => {
   const refreshToken = request.cookies.get("refresh");
   const accessToken = request.cookies.get("access");
+
+  console.log(accessToken, refreshToken);
+
   const secretKey = new TextEncoder().encode(process.env.JWT_SECRET);
 
   if (accessToken) {

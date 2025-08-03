@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,11 +10,18 @@ import { RiLogoutBoxLine, RiExpandUpDownLine } from "react-icons/ri";
 import { IoIosSettings } from "react-icons/io";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
+import { toast } from "sonner";
+import { logout } from "@/utils/actions";
 
 const SidebarDropdown = ({ name, role }: { name: string; role: string }) => {
   const names = name.split(" ");
   const initials =
     names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0];
+
+  const handleLogout = () => {
+    toast.success("Successfully logged out");
+    logout();
+  };
 
   return (
     <DropdownMenu>
@@ -37,9 +46,8 @@ const SidebarDropdown = ({ name, role }: { name: string; role: string }) => {
             Settings
           </DropdownMenuItem>
         </Link>
-        <DropdownMenuItem>
-          <RiLogoutBoxLine />
-          Logout
+        <DropdownMenuItem onSelect={handleLogout}>
+          <RiLogoutBoxLine /> Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
