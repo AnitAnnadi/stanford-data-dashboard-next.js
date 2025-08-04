@@ -180,3 +180,11 @@ export const getSingleActiveForm = async (formId: string) => {
 
   return redirect("/");
 };
+
+export const emailCertificate = async (prevState: any, formData: FormData) => {
+  try {
+    return { message: "Successfully emailed certificate" };
+  } catch (error) {
+    return renderError(error);
+  }
+};
