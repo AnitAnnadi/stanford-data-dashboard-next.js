@@ -1,4 +1,3 @@
-import HealthyFutures from "@/components/dashboard/HealthyFutures";
 import InfoCard from "@/components/dashboard/InfoCard";
 import { getResponsesWithTeacherCount, getUserFromDb } from "@/utils/actions";
 

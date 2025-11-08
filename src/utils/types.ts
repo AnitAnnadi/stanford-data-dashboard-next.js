@@ -40,14 +40,23 @@ export type UserLocationWithUser = Prisma.UserLocationGetPayload<{
 
 export type btnVariant = "default" | "secondary" | "destructive";
 
-export type questionOption = { id: string; text: string; code: number };
+export type questionOption = {
+  id: string;
+  text: string;
+  code: number;
+};
 export type question = {
   id: string;
   question: string;
+  showInTeacherExport: boolean;
   options: questionOption[];
 };
 
-export type updateQuestionFn = (questionId: string, text: string) => void;
+export type updateQuestionFn = (
+  questionId: string,
+  text: string,
+  showInTeacherExport: boolean
+) => void;
 export type handleQuestionByIdFn = (questionId: string) => void;
 export type updateOptionFn = (
   questionId: string,

@@ -5,7 +5,6 @@ import { GoPlus } from "react-icons/go";
 import OptionInput from "./OptionInput";
 import { RadioGroup } from "../ui/radio-group";
 import { Separator } from "../ui/separator";
-import { CgTrash } from "react-icons/cg";
 import { question } from "@/utils/types";
 import { Input } from "../ui/input";
 import {
@@ -14,6 +13,7 @@ import {
   updateOptionFn,
   deleteOptionFn,
 } from "@/utils/types";
+import QuestionInputFooter from "./QuestionInputFooter";
 
 const QuestionInput = ({
   question,
@@ -31,13 +31,19 @@ const QuestionInput = ({
   deleteOption: deleteOptionFn;
 }) => {
   return (
-    <Card className="relative mt-4 focus-within:border-l-6 focus-within:border-l-primary transition-colors duration-200 ease-in-out">
+    <Card className="relative mt-4 pb-3">
       <CardContent className="space-y-4">
         <Input
           placeholder="Enter your question"
           type="text"
           value={question.question}
-          onChange={(e) => updateQuestion(question.id, e.target.value)}
+          onChange={(e) =>
+            updateQuestion(
+              question.id,
+              e.target.value,
+              question.showInTeacherExport
+            )
+          }
           required
         />
         <div className="flex items-center gap-x-1">
@@ -64,16 +70,12 @@ const QuestionInput = ({
             );
           })}
         </RadioGroup>
-        <Separator />
-        <Button
-          variant="ghost"
-          size="icon"
-          type="button"
-          className="absolute bottom-0.5 right-3"
-          onClick={() => deleteQuestion(question.id)}
-        >
-          <CgTrash className="size-5" />
-        </Button>
+        <Separator className="mb-1" />
+        <QuestionInputFooter
+          updateQuestion={updateQuestion}
+          deleteQuestion={deleteQuestion}
+          question={question}
+        />
       </CardContent>
     </Card>
   );

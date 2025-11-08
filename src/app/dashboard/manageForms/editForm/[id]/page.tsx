@@ -15,7 +15,7 @@ const EditFormPage = async ({ params }: { params: { id: string } }) => {
   return (
     <FormContainer action={updateForm}>
       <Input name="formId" type="hidden" value={formId} />
-      <TitleInput defaultValue={title} />
+      <TitleInput defaultValue={title} disabled={true} />
       <FormDetailsInput
         defaultValues={{
           type,

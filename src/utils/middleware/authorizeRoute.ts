@@ -40,6 +40,13 @@ const authorizeRoute = async (
       ? ["/selectUserLocation", "/createLocation", "/pendingLocation"]
       : ["/selectUserLocation"];
 
+  console.log({
+    role,
+    numApprovedUserLocations,
+    pathname,
+    routesAccessibleWithoutUserLocation,
+  });
+
   if (
     numApprovedUserLocations === 0 &&
     !routesAccessibleWithoutUserLocation.includes(pathname) &&

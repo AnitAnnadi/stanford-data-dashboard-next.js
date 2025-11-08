@@ -17,6 +17,7 @@ const createQuestion = () => {
   return {
     id: uuidv4(),
     question: "",
+    showInTeacherExport: true,
     options: [
       { id: uuidv4(), text: "", code: 0 },
       { id: uuidv4(), text: "", code: 0 },
@@ -31,12 +32,20 @@ const AddFormPage = () => {
     setQuestions((prev) => [...prev, createQuestion()]);
   };
 
-  const updateQuestion = (questionId: string, text: string) => {
+  const updateQuestion = (
+    questionId: string,
+    text: string,
+    showInTeacherExport: boolean
+  ) => {
     setQuestions((prev) =>
       prev.map((question) =>
-        question.id === questionId ? { ...question, question: text } : question
+        question.id === questionId
+          ? { ...question, question: text, showInTeacherExport }
+          : question
       )
     );
+
+    console.log(questions);
   };
 
   const deleteQuestion = (questionId: string) => {

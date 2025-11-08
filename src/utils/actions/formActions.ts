@@ -18,8 +18,6 @@ export const addForm = async (prevState: any, formData: FormData) => {
     await ensureStanfordUser();
 
     const rawData = Object.fromEntries(formData);
-    console.log(rawData);
-
     rawData.questions = JSON.parse(rawData.questions as string).map(
       (question: question) => {
         const id = uuidv4();
@@ -84,6 +82,7 @@ export const getAllForms = async () => {
 };
 
 export const deleteForm = async (prevState: any, formData: FormData) => {
+  void formData;
   try {
     await ensureStanfordUser();
 
@@ -137,7 +136,6 @@ export const updateForm = async (prevState: any, formData: FormData) => {
         id: validatedFields.formId,
       },
       data: {
-        title: validatedFields.title,
         active: validatedFields.active,
         provideCertificate: validatedFields.provideCertificate,
       },

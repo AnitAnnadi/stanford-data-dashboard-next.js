@@ -74,6 +74,7 @@ type Option {
 type Question {
   id String
   question String
+  showInTeacherExport Boolean
   options Option[]
 }
 

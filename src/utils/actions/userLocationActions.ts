@@ -204,6 +204,21 @@ export const getUserLocations = async (userId: string) => {
   return userLocations;
 };
 
+export const getUserLocation = async (userId: string) => {
+  const userLocation = await prisma.userLocation.findFirst({
+    where: {
+      userId,
+      approved: true,
+    },
+  });
+
+  if (userLocation) {
+    return userLocation;
+  }
+
+  return redirect("/selectUserLocation");
+};
+
 export const getPendingUserLocations = async () => {
   const userLocations = await prisma.userLocation.findMany({
     where: {
@@ -226,6 +241,7 @@ export const declineLocationRequest = async (
   prevState: any,
   formData: FormData
 ) => {
+  void formData;
   try {
     const { userLocationId } = prevState;
 
@@ -244,6 +260,7 @@ export const approveLocationRequest = async (
   prevState: any,
   formData: FormData
 ) => {
+  void formData;
   try {
     const { userLocationId } = prevState;
 
