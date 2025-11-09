@@ -61,7 +61,7 @@ const AdminMetricsFilters = ({
     setCities([]);
     setSchools([]);
 
-    if (!isUSA) {
+    if (!isUSA && location.country !== "All") {
       const updateCitiesForNonUS = async () => {
         const cities = await fetchLocations("city", {
           country: location.country,
@@ -88,7 +88,7 @@ const AdminMetricsFilters = ({
       setCities([]);
       setSchools([]);
 
-      if (location.state) {
+      if (location.state !== "All") {
         const counties = await fetchLocations("county", {
           country: location.country,
           state: location.state,
@@ -113,7 +113,7 @@ const AdminMetricsFilters = ({
       setCities([]);
       setSchools([]);
 
-      if (location.county) {
+      if (location.county !== "All") {
         const districts = await fetchLocations("district", {
           country: location.country,
           state: location.state,
@@ -133,7 +133,7 @@ const AdminMetricsFilters = ({
       setLocation((prev) => ({ ...prev, city: "All", school: "All" }));
       setSchools([]);
 
-      if (location.district) {
+      if (location.district !== "All") {
         const cities = await fetchLocations("city", {
           country: location.country,
           state: location.state,
@@ -153,7 +153,7 @@ const AdminMetricsFilters = ({
     const updateSchools = async () => {
       setLocation((prev) => ({ ...prev, school: "All" }));
 
-      if (location.city) {
+      if (location.city !== "All") {
         const schoolQuery: {
           country: string;
           state?: string;
