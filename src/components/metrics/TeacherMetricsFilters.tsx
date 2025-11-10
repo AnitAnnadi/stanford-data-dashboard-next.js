@@ -25,6 +25,45 @@ const TeacherMetricsFilters = ({
     school: "All",
   });
 
+  const onlyUnitedStates = teacherLocations.every(
+    (location) => location.country === "United States"
+  );
+  const oneLocation = teacherLocations.length === 1;
+  useEffect(() => {
+    if (oneLocation) {
+      const singleLocation: {
+        country: string;
+        state: string;
+        county: string;
+        district: string;
+        city: string;
+        school: string;
+      } = {
+        country: teacherLocations[0].country,
+        state: "All",
+        county: "All",
+        district: "All",
+        city: teacherLocations[0].city as string,
+        school: teacherLocations[0].school as string,
+      };
+
+      if (onlyUnitedStates) {
+        singleLocation.state = teacherLocations[0].state as string;
+        singleLocation.county = teacherLocations[0].county as string;
+        singleLocation.district = teacherLocations[0].district as string;
+      }
+
+      setLocation(singleLocation);
+    }
+
+    if (onlyUnitedStates) {
+      setLocation((prev) => ({
+        ...prev,
+        country: "United States",
+      }));
+    }
+  }, [teacherLocations]);
+
   const isUSA = location.country === "United States";
   const countries = [
     ...new Set(teacherLocations.map((location) => location.country)),
@@ -43,6 +82,8 @@ const TeacherMetricsFilters = ({
   const [schools, setSchools] = useState<string[]>([]);
 
   useEffect(() => {
+    if (onlyUnitedStates || oneLocation) return;
+
     setLocation((prev) => ({
       ...prev,
       state: "All",
@@ -66,6 +107,8 @@ const TeacherMetricsFilters = ({
   }, [location.country]);
 
   useEffect(() => {
+    if (oneLocation) return;
+
     setLocation((prev) => ({
       ...prev,
       county: "All",
@@ -89,6 +132,8 @@ const TeacherMetricsFilters = ({
   }, [location.state]);
 
   useEffect(() => {
+    if (oneLocation) return;
+
     setLocation((prev) => ({
       ...prev,
       district: "All",
@@ -113,6 +158,8 @@ const TeacherMetricsFilters = ({
   }, [location.county]);
 
   useEffect(() => {
+    if (oneLocation) return;
+
     setLocation((prev) => ({ ...prev, city: "All", school: "All" }));
     setSchools([]);
 
@@ -132,6 +179,8 @@ const TeacherMetricsFilters = ({
   }, [location.district]);
 
   useEffect(() => {
+    if (oneLocation) return;
+
     setLocation((prev) => ({ ...prev, school: "All" }));
 
     if (location.city !== "All") {
@@ -167,7 +216,11 @@ const TeacherMetricsFilters = ({
             onChange={(country) =>
               setLocation((prev) => ({ ...prev, country }))
             }
-            options={["All", ...countries]}
+            options={
+              oneLocation || onlyUnitedStates
+                ? [location.country]
+                : ["All", ...countries]
+            }
           />
         </div>
         {isUSA && (
@@ -180,7 +233,7 @@ const TeacherMetricsFilters = ({
                 onChange={(state) =>
                   setLocation((prev) => ({ ...prev, state }))
                 }
-                options={["All", ...states]}
+                options={oneLocation ? [location.state] : ["All", ...states]}
               />
             </div>
             <div>
@@ -191,7 +244,7 @@ const TeacherMetricsFilters = ({
                 onChange={(county) =>
                   setLocation((prev) => ({ ...prev, county }))
                 }
-                options={["All", ...counties]}
+                options={oneLocation ? [location.county] : ["All", ...counties]}
               />
             </div>
             <div>
@@ -202,7 +255,9 @@ const TeacherMetricsFilters = ({
                 onChange={(district) =>
                   setLocation((prev) => ({ ...prev, district }))
                 }
-                options={["All", ...districts]}
+                options={
+                  oneLocation ? [location.district] : ["All", ...districts]
+                }
               />
             </div>
           </>
@@ -213,7 +268,7 @@ const TeacherMetricsFilters = ({
             name="city"
             value={location.city}
             onChange={(city) => setLocation((prev) => ({ ...prev, city }))}
-            options={["All", ...cities]}
+            options={oneLocation ? [location.city] : ["All", ...cities]}
           />
         </div>
         <div>
@@ -222,7 +277,7 @@ const TeacherMetricsFilters = ({
             name="school"
             value={location.school}
             onChange={(school) => setLocation((prev) => ({ ...prev, school }))}
-            options={["All", ...schools]}
+            options={oneLocation ? [location.school] : ["All", ...schools]}
           />
         </div>
         <div>
