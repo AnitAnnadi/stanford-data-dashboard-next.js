@@ -13,6 +13,8 @@ import { getUser } from "./userActions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ensureStanfordUser } from "./userActions";
+import { sendLocationApprovedEmail } from "../email/templates/locationStatusEmail";
+import { sendLocationDeclinedEmail } from "../email/templates/locationStatusEmail";
 
 export const fillUserLocationDetails = async (
   validatedFields: any,
@@ -48,7 +50,7 @@ const verifyLocationConsistency = async ({
   role: Roles;
   isTeacher: boolean;
   userLocation: UserLocationWithoutId;
-  onMismatch: string;
+  onMismatch: strinfg;
   onSiteLimit: string;
   onGeneralLimit: string;
 }) => {
@@ -245,9 +247,20 @@ export const declineLocationRequest = async (
   try {
     const { userLocationId } = prevState;
 
-    await prisma.userLocation.delete({
+    const userLocation = await prisma.userLocation.delete({
       where: { id: userLocationId },
+      include: { user: true },
     });
+
+    if (userLocation?.user?.email) {
+      const locationName =
+        userLocation.school || userLocation.city || "your site";
+      await sendLocationDeclinedEmail(
+        userLocation.user.email,
+        userLocation.user.name,
+        locationName
+      );
+    }
 
     revalidatePath("/dashboard/manageLocations");
     return { message: "Location request declined" };
@@ -269,6 +282,7 @@ export const approveLocationRequest = async (
       data: {
         approved: true,
       },
+      include: { user: true },
     });
 
     await prisma.location.create({
@@ -281,6 +295,16 @@ export const approveLocationRequest = async (
         school: userLocation.school as string,
       },
     });
+    console.log(userLocation);
+    if (userLocation.user?.email) {
+      const locationName =
+        userLocation.school || userLocation.city || "your site";
+      await sendLocationApprovedEmail(
+        userLocation.user.email,
+        userLocation.user.name,
+        locationName
+      );
+    }
 
     revalidatePath("/dashboard/manageLocations");
     return {

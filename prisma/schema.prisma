@@ -33,6 +33,7 @@ model User {
   code String @unique
   userLocations UserLocation[]
   responsesWithTeacher ResponseWithTeacher[]
+  tokens               PasswordResetToken[]
 }
 
 model UserLocation {
@@ -118,4 +119,17 @@ model ResponseWithoutTeacher {
   grade String
   answers Answer[]
   createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
