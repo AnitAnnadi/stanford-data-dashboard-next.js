@@ -20,8 +20,6 @@ const AdminMetricsFilters = ({
   adminLocation: UserLocation | null;
   forms: string[];
 }) => {
-  console.log(adminLocation);
-
   let isUSA = adminLocation?.country === "United States";
   const fixedCountry = role != Roles.stanford;
   const fixedState = isUSA && fixedCountry && role != Roles.country;
@@ -84,6 +82,7 @@ const AdminMetricsFilters = ({
         district: "All",
         school: "All",
       }));
+      setCounties([]);
       setDistricts([]);
       setCities([]);
       setSchools([]);
@@ -110,6 +109,7 @@ const AdminMetricsFilters = ({
         city: "All",
         school: "All",
       }));
+      setDistricts([]);
       setCities([]);
       setSchools([]);
 
@@ -131,6 +131,7 @@ const AdminMetricsFilters = ({
 
     const updateCities = async () => {
       setLocation((prev) => ({ ...prev, city: "All", school: "All" }));
+      setCities([]);
       setSchools([]);
 
       if (location.district !== "All") {
@@ -152,6 +153,7 @@ const AdminMetricsFilters = ({
 
     const updateSchools = async () => {
       setLocation((prev) => ({ ...prev, school: "All" }));
+      setSchools([]);
 
       if (location.city !== "All") {
         const schoolQuery: {

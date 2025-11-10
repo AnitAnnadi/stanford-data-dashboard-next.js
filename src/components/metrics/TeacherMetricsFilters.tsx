@@ -91,7 +91,6 @@ const TeacherMetricsFilters = ({
       city: "All",
       district: "All",
     }));
-
     setCounties([]);
     setDistricts([]);
     setCities([]);
@@ -116,6 +115,7 @@ const TeacherMetricsFilters = ({
       district: "All",
       school: "All",
     }));
+    setCounties([]);
     setDistricts([]);
     setCities([]);
     setSchools([]);
@@ -140,6 +140,7 @@ const TeacherMetricsFilters = ({
       city: "All",
       school: "All",
     }));
+    setDistricts([]);
     setCities([]);
     setSchools([]);
 
@@ -161,6 +162,7 @@ const TeacherMetricsFilters = ({
     if (oneLocation) return;
 
     setLocation((prev) => ({ ...prev, city: "All", school: "All" }));
+    setCities([]);
     setSchools([]);
 
     if (location.district !== "All") {
@@ -182,6 +184,7 @@ const TeacherMetricsFilters = ({
     if (oneLocation) return;
 
     setLocation((prev) => ({ ...prev, school: "All" }));
+    setSchools([]);
 
     if (location.city !== "All") {
       const schools = teacherLocations
