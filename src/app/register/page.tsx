@@ -17,7 +17,6 @@ import { useState } from "react";
 import LocationComboBox from "@/components/selectCreateLocation/LocationComboBox";
 import countries from "@/data/countries";
 import SelectRole from "@/components/register/SelectRole";
-import Image from "next/image";
 
 const RegisterPage = () => {
   const [country, setCountry] = useState("United States");
@@ -25,18 +24,6 @@ const RegisterPage = () => {
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-sm">
-        {/* <div
-            style={{
-              position: "fixed",
-              bottom: "20px", // distance from bottom
-              right: "20px", // distance from right
-              zIndex: 1000, // make sure it's on top of other elements
-            }}
-          >
-            <Image src={"/image001.png"} alt="Logo" width={300} height={200} />
-          </div> */}
-
-        <Image src={"/image001.png"} alt="Logo" width={300} height={200} />
         <CardHeader>
           <CardTitle>Register</CardTitle>
           <CardDescription>
