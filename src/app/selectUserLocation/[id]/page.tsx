@@ -12,6 +12,7 @@ import { getUserFromLocation, stanfordAddUserLocation } from "@/utils/actions";
 import { Roles } from "@prisma/client";
 import Link from "next/link";
 import React from "react";
+import Logo from "../../../components/global/Logo";
 
 const StanfordSelectUserLocationPage = async ({
   params,
@@ -28,6 +29,7 @@ const StanfordSelectUserLocationPage = async ({
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
+        <Logo />
         <CardHeader>
           <CardTitle className="text-3xl font-medium">
             Select a Location

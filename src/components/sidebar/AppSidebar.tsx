@@ -15,11 +15,12 @@ import { VscGraph } from "react-icons/vsc";
 import { CiSquarePlus } from "react-icons/ci";
 import Link from "next/link";
 import SidebarDropdown from "./SidebarDropdown";
-import SidebarBranding from "./SidebarBranding";
-import { getUser } from "@/utils/actions";
+import { getUserFromDb } from "@/utils/actions";
 import { FaFileAlt } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 import { Roles } from "@prisma/client";
+import { IoIosSettings } from "react-icons/io";
+import Logo from "../global/Logo";
 
 const links = [
   {
@@ -53,10 +54,16 @@ const links = [
     visibleTo: ({ role, isTeacher }: { role: Roles; isTeacher: boolean }) =>
       isTeacher && role !== "site",
   },
+  {
+    title: "Settings",
+    url: "/dashboard/settings",
+    icon: IoIosSettings,
+    visibleTo: () => true,
+  },
 ];
 
 const AppSidebar = async () => {
-  const { name, role, isTeacher } = await getUser();
+  const { name, role, isTeacher } = await getUserFromDb();
   const headerLink = isTeacher ? "/dashboard" : "/dashboard/metrics";
 
   const filteredLinks = links.filter((link) =>
@@ -75,13 +82,13 @@ const AppSidebar = async () => {
   return (
     <Sidebar collapsible="icon">
       <Link href={headerLink}>
-        <SidebarHeader>
-          <SidebarBranding />
+        <SidebarHeader className="pb-0">
+          <Logo />
         </SidebarHeader>
       </Link>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Curriculum Data Dashboard</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredLinks.map((link) => (

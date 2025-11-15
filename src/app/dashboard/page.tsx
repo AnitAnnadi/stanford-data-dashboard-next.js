@@ -8,7 +8,7 @@ const DashboardPage = async () => {
 
   return (
     <>
-      <InfoCard data={code} caption="teacher code" />
+      <InfoCard data={code} caption="teacher code" usePrimaryColor={true} />
       <div className="grid md:grid-cols-2 items-center gap-4 mt-4">
         <InfoCard data={`${numPreResponses}`} caption="pre-survey responses" />
         <InfoCard

@@ -13,11 +13,13 @@ import FormContainer from "@/components/form/FormContainer";
 import FormInput from "@/components/form/FormInput";
 import { SubmitButton } from "@/components/form/Buttons";
 import { login } from "@/utils/actions";
+import Logo from "@/components/global/Logo";
 
 const LoginPage = () => {
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-sm">
+        <Logo />
         <CardHeader>
           <CardTitle>Login</CardTitle>
           <CardDescription>

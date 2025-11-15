@@ -1,4 +1,4 @@
-import { number, z, ZodSchema, ZodTypeDef } from "zod";
+import { z, ZodSchema, ZodTypeDef } from "zod";
 import { getRequiredLocationFields } from "./helpers";
 
 export function validateWithZodSchema<T>(
@@ -69,6 +69,18 @@ export const registerSchema = z
       path: ["role"],
     }
   );
+
+export const updateUserSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, {
+      message: "Name must be at least 2 characters",
+    })
+    .max(100, {
+      message: "Name must be less than 100 characters",
+    }),
+});
 
 export const selectUserLocationSchema = z
   .object({

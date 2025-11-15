@@ -16,6 +16,7 @@ import {
   addUserLocation,
 } from "@/utils/actions";
 import { Roles } from "@prisma/client";
+import Image from "next/image";
 
 const SelectUserLocationPage = async () => {
   const { numApprovedUserLocations } = await getUserLocationCount();
@@ -31,6 +32,13 @@ const SelectUserLocationPage = async () => {
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
+        <Image
+          src="/image001.png"
+          alt="logo"
+          width={250}
+          height={125}
+          className="mx-auto"
+        />
         <CardHeader>
           <CardTitle className="text-3xl font-medium">{title}</CardTitle>
           <CardDescription>

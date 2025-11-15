@@ -2,6 +2,7 @@ import StudentDetailsForm from "@/components/studentDetails/StudentDetailsForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSingleActiveForm, getUserLocations } from "@/utils/actions";
 import { UserLocation } from "@prisma/client";
+import Logo from "@/components/global/Logo";
 
 const DetailsPage = async ({
   params,
@@ -26,6 +27,7 @@ const DetailsPage = async ({
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
+        <Logo />
         <CardContent>
           <h3 className="font-semibold mb-6">{title}</h3>
           <StudentDetailsForm

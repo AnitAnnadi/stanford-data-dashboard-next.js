@@ -11,7 +11,8 @@ import {
 const roleOptions = [
   {
     role: "teacher",
-    label: "teacher",
+    label:
+      "teacher/educator (e.g., counselor, prevention specialist, youth-serving professional)",
     international: true,
   },
   {

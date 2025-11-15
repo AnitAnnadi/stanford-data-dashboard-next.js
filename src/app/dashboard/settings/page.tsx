@@ -1,10 +1,12 @@
 import FormInput from "@/components/form/FormInput";
 import SectionTitle from "@/components/global/SectionTitle";
-import { getUserFromDb, getUserLocations } from "@/utils/actions";
+import { getUserFromDb, getUserLocations, updateUser } from "@/utils/actions";
 import { Roles } from "@prisma/client";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
 import ShowUserLocations from "@/components/settings/ShowUserLocations";
+import FormContainer from "@/components/form/FormContainer";
+import { SubmitButton } from "@/components/form/Buttons";
 
 const SettingsPage = async () => {
   const { id, name, email, role, isTeacher } = await getUserFromDb();
@@ -23,27 +25,41 @@ const SettingsPage = async () => {
       <Alert variant="destructive" className="my-4">
         <AlertCircleIcon />
         <AlertTitle>
-          Settings cannot be modified. If you need help, please contact
-          sgerbert@stanford.edu.
+          Settings cannot be modified except for your name. If you need help,
+          please contact sgerbert@stanford.edu.
         </AlertTitle>
       </Alert>
-      <FormInput name="name" type="text" defaultValue={name} />
-      <FormInput name="email" type="email" defaultValue={email} />
-      <FormInput name="role" type="text" defaultValue={displayRole} />
-      <FormInput
-        name="isTeacher"
-        label="is a teacher?"
-        type="text"
-        defaultValue={isTeacher.toString()}
-      />
-      {role !== Roles.stanford && (
-        <ShowUserLocations
-          role={role}
-          isTeacher={isTeacher}
-          userLocations={userLocations}
-          showAddUserLocation={showAddUserLocation}
+      <FormContainer action={updateUser}>
+        <FormInput name="name" type="text" defaultValue={name} />
+        <FormInput
+          name="email"
+          type="email"
+          defaultValue={email}
+          disabled={true}
         />
-      )}
+        <FormInput
+          name="role"
+          type="text"
+          defaultValue={displayRole}
+          disabled={true}
+        />
+        <FormInput
+          name="isTeacher"
+          label="is a teacher?"
+          type="text"
+          defaultValue={isTeacher.toString()}
+          disabled={true}
+        />
+        {role !== Roles.stanford && (
+          <ShowUserLocations
+            role={role}
+            isTeacher={isTeacher}
+            userLocations={userLocations}
+            showAddUserLocation={showAddUserLocation}
+          />
+        )}
+        <SubmitButton text="save changes" className="mt-4 w-full" />
+      </FormContainer>
     </div>
   );
 };

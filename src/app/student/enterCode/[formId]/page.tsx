@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import FormContainer from "@/components/form/FormContainer";
 import { findUserByCode, getSingleActiveForm } from "@/utils/actions";
 import { Input } from "@/components/ui/input";
+import Logo from "@/components/global/Logo";
 
 const EnterCodePage = async ({ params }: { params: { formId: string } }) => {
   const { formId } = await params;
@@ -21,6 +22,7 @@ const EnterCodePage = async ({ params }: { params: { formId: string } }) => {
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
+        <Logo />
         <CardHeader>
           <CardTitle>Enter Code</CardTitle>
         </CardHeader>

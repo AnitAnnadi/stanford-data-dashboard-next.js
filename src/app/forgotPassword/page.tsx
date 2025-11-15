@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Logo from "@/components/global/Logo";
 
 type AlertState =
   | { kind: "success"; message: string }
@@ -67,6 +68,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          <Logo />
           <CardTitle>Forgot Password</CardTitle>
           <CardDescription>
             Enter your email to receive a reset link.
@@ -101,7 +103,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Sending…" : "Request Reset Link"}
+              {isLoading ? "Sending…" : "Request Password Reset Link"}
             </Button>
           </form>
         </CardContent>

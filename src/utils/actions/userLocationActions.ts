@@ -50,7 +50,7 @@ const verifyLocationConsistency = async ({
   role: Roles;
   isTeacher: boolean;
   userLocation: UserLocationWithoutId;
-  onMismatch: strinfg;
+  onMismatch: string;
   onSiteLimit: string;
   onGeneralLimit: string;
 }) => {

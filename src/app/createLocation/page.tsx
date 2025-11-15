@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getUserLocationCount, getUser } from "@/utils/actions";
 import CreateLocationForm from "@/components/selectCreateLocation/CreateLocationForm";
+import Logo from "@/components/global/Logo";
 
 const CreateLocationPage = async () => {
   const { numApprovedUserLocations } = await getUserLocationCount();
@@ -18,6 +19,7 @@ const CreateLocationPage = async () => {
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
+        <Logo />
         <CardHeader>
           <CardTitle className="text-3xl font-medium">
             Create A Location

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Roles } from "@prisma/client";
 import React from "react";
+import Logo from "@/components/global/Logo";
 
 const SelectStudentLocationPage = async ({
   params,
@@ -19,6 +20,7 @@ const SelectStudentLocationPage = async ({
   return (
     <div className="grid h-lvh place-items-center">
       <Card className="w-full max-w-lg">
+        <Logo />
         <CardHeader>
           <CardTitle className="text-3xl font-medium">
             Select a Location

@@ -32,7 +32,7 @@ const SubmissionSuccessPage = () => {
       />
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Get your certificate</CardTitle>
+          <CardTitle>Certificate of Completion</CardTitle>
           <CardDescription>
             Enter your name and email to recieve your certificate. Neither will
             be stored or linked to your form response.

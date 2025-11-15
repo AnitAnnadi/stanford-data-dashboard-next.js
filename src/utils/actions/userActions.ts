@@ -5,6 +5,9 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { accessPayload } from "../types";
 import { renderError } from "../helpers";
+import { validateWithZodSchema } from "../schemas";
+import { updateUserSchema } from "../schemas";
+import { revalidatePath } from "next/cache";
 
 export const getUser = async () => {
   const cookieStore = await cookies();
@@ -67,6 +70,30 @@ export const findUserByCode = async (prevState: any, formData: FormData) => {
     return {
       message: "",
       redirect: `/student/details/${formId}/${teacher.id}/${teacher.name}`,
+    };
+  } catch (error) {
+    return renderError(error);
+  }
+};
+
+export const updateUser = async (prevState: any, formData: FormData) => {
+  try {
+    const rawData = Object.fromEntries(formData);
+    const validatedFields = validateWithZodSchema(updateUserSchema, rawData);
+    const { userId } = await getUser();
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        name: validatedFields.name,
+      },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return {
+      message: "Successfully updated name",
     };
   } catch (error) {
     return renderError(error);
