@@ -21,12 +21,12 @@ const SettingsPage = async () => {
 
   return (
     <div>
-      <SectionTitle text="settings" />
+      <SectionTitle text="profile" />
       <Alert variant="destructive" className="my-4">
         <AlertCircleIcon />
         <AlertTitle>
-          Settings cannot be modified except for your name. If you need help,
-          please contact sgerbert@stanford.edu.
+          Profile details cannot be modified except for your name. If you need
+          help, please contact sgerbert@stanford.edu.
         </AlertTitle>
       </Alert>
       <FormContainer action={updateUser}>

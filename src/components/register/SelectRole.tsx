@@ -71,7 +71,7 @@ const SelectRole = ({ country }: { country: string }) => {
   return (
     <Select name="role" required>
       <SelectTrigger className="w-full mt-3 capitalize">
-        <SelectValue placeholder="Select a role" />
+        <SelectValue placeholder="Select your role" />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>

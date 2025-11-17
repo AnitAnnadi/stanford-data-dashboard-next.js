@@ -1,14 +1,17 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import Logo from "../global/Logo";
 
 const SidebarBranding = () => {
   return (
-    <div className="flex items-center focus:outline-none overflow-hidden">
-      <Avatar>
-        <AvatarImage src="https://identity.stanford.edu/wp-content/uploads/sites/3/2020/07/block-s-right.png" />
-      </Avatar>
-      <div className="justify-items-start ml-4 mr-2 whitespace-nowrap">
-        <h4 className="font-semibold capitalize">Stanford REACH Lab</h4>
-        <p className="text-sm">Curriculum Data Dashboard</p>
+    <div>
+      <div className="group-data-[state=expanded]:flex group-data-[state=collapsed]:hidden">
+        <Logo />
+      </div>
+
+      <div className="group-data-[state=collapsed]:flex group-data-[state=expanded]:hidden">
+        <Avatar>
+          <AvatarImage src="https://images.crunchbase.com/image/upload/c_pad,h_256,w_256,f_auto,q_auto:eco,dpr_1/issvqcgzdqxshyitbkne?ik-sanitizeSvg=true" />
+        </Avatar>
       </div>
     </div>
   );

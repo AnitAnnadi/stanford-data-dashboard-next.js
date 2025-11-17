@@ -19,8 +19,8 @@ import { getUserFromDb } from "@/utils/actions";
 import { FaFileAlt } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 import { Roles } from "@prisma/client";
-import { IoIosSettings } from "react-icons/io";
-import Logo from "../global/Logo";
+import { IoPerson } from "react-icons/io5";
+import SidebarBranding from "./SidebarBranding";
 
 const links = [
   {
@@ -55,9 +55,9 @@ const links = [
       isTeacher && role !== "site",
   },
   {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: IoIosSettings,
+    title: "Profile",
+    url: "/dashboard/profile",
+    icon: IoPerson,
     visibleTo: () => true,
   },
 ];
@@ -80,10 +80,10 @@ const AppSidebar = async () => {
   }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="group">
       <Link href={headerLink}>
         <SidebarHeader className="pb-0">
-          <Logo />
+          <SidebarBranding />
         </SidebarHeader>
       </Link>
       <SidebarContent>

@@ -7,8 +7,8 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { RiLogoutBoxLine, RiExpandUpDownLine } from "react-icons/ri";
-import { IoIosSettings } from "react-icons/io";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { IoPerson } from "react-icons/io5";
 import Link from "next/link";
 import { toast } from "sonner";
 import { logout } from "@/utils/actions";
@@ -40,10 +40,10 @@ const SidebarDropdown = ({ name, role }: { name: string; role: string }) => {
         <RiExpandUpDownLine className="text-xl" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="right" className="mb-2">
-        <Link href="/dashboard/settings">
+        <Link href="/dashboard/profile">
           <DropdownMenuItem>
-            <IoIosSettings />
-            Settings
+            <IoPerson />
+            Profile
           </DropdownMenuItem>
         </Link>
         <DropdownMenuItem onSelect={handleLogout}>
