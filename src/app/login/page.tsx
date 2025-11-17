@@ -33,16 +33,8 @@ const LoginPage = () => {
         </CardHeader>
         <CardContent>
           <FormContainer action={login}>
-            <FormInput
-              name="email"
-              type="email"
-              defaultValue="anitannadi@gmail.com"
-            />
-            <FormInput
-              name="password"
-              type="password"
-              defaultValue="batman123"
-            />
+            <FormInput name="email" type="email" />
+            <FormInput name="password" type="password" />
             <SubmitButton text="login" className="w-full mt-4" />
           </FormContainer>
         </CardContent>
