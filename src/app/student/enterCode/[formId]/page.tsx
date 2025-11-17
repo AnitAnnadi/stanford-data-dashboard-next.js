@@ -15,7 +15,7 @@ import { findUserByCode, getSingleActiveForm } from "@/utils/actions";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/global/Logo";
 
-const EnterCodePage = async ({ params }: { params: { formId: string } }) => {
+const EnterCodePage = async ({ params }: any) => {
   const { formId } = await params;
   const { provideCertificate } = await getSingleActiveForm(formId);
 

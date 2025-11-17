@@ -22,6 +22,7 @@ const createQuestion = () => {
       { id: uuidv4(), text: "", code: 0 },
       { id: uuidv4(), text: "", code: 0 },
     ],
+    name:""
   };
 };
 
@@ -35,12 +36,13 @@ const AddFormPage = () => {
   const updateQuestion = (
     questionId: string,
     text: string,
-    showInTeacherExport: boolean
+    showInTeacherExport: boolean,
+    name: string
   ) => {
     setQuestions((prev) =>
       prev.map((question) =>
         question.id === questionId
-          ? { ...question, question: text, showInTeacherExport }
+          ? { ...question, question: text, showInTeacherExport, name }
           : question
       )
     );

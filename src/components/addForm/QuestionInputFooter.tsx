@@ -24,7 +24,7 @@ const QuestionInputFooter = ({
           id="showInTeacherExport"
           checked={question.showInTeacherExport}
           onCheckedChange={(value) =>
-            updateQuestion(question.id, question.question, value)
+            updateQuestion(question.id, question.question, value, question.name)
           }
         />
         <Label htmlFor="showInTeacherExport">Show in teacher export</Label>

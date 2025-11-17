@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { updateForm, getSingleForm } from "@/utils/actions";
 import React from "react";
 
-const EditFormPage = async ({ params }: { params: { id: string } }) => {
-  const { id: formId } = await params;
+const EditFormPage = async ({ params }: any) => {
+  const { id: formId } = params;
   const { title, type, active, provideCertificate, questions } =
     await getSingleForm(formId);
 

@@ -3,11 +3,7 @@ import StudentForm from "@/components/studentForm/StudentForm";
 import { getSingleActiveForm } from "@/utils/actions";
 import React from "react";
 
-const FormPage = async ({
-  params,
-}: {
-  params: { formId: string; teacherId: string };
-}) => {
+const FormPage = async ({ params }: any) => {
   const { formId, teacherId } = await params;
   const { title, questions } = await getSingleActiveForm(formId);
 

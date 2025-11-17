@@ -34,14 +34,30 @@ const QuestionInput = ({
     <Card className="relative mt-4 pb-3">
       <CardContent className="space-y-4">
         <Input
+          placeholder="Short identifier (e.g., q_environment_1)"
+          type="text"
+          value={question.name??""}
+          onChange={(e) =>
+            updateQuestion(
+              question.id,
+              question.question,
+              question.showInTeacherExport,
+              e.target.value
+            )
+          }
+          required
+        />
+
+        <Input
           placeholder="Enter your question"
           type="text"
-          value={question.question}
+          value={question.question??""}
           onChange={(e) =>
             updateQuestion(
               question.id,
               e.target.value,
-              question.showInTeacherExport
+              question.showInTeacherExport,
+              question.name ?? ""
             )
           }
           required

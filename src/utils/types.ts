@@ -50,13 +50,16 @@ export type question = {
   question: string;
   showInTeacherExport: boolean;
   options: questionOption[];
+  name: string;
 };
 
 export type updateQuestionFn = (
-  questionId: string,
-  text: string,
-  showInTeacherExport: boolean
+  id: string,
+  questionText: string,
+  showInTeacherExport: boolean,
+  name: string
 ) => void;
+
 export type handleQuestionByIdFn = (questionId: string) => void;
 export type updateOptionFn = (
   questionId: string,

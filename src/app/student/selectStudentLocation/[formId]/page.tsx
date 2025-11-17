@@ -10,11 +10,7 @@ import { Roles } from "@prisma/client";
 import React from "react";
 import Logo from "@/components/global/Logo";
 
-const SelectStudentLocationPage = async ({
-  params,
-}: {
-  params: { formId: string };
-}) => {
+const SelectStudentLocationPage = async ({ params }: any) => {
   const { formId } = await params;
 
   return (

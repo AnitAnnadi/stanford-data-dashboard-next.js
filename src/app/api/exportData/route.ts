@@ -3,12 +3,71 @@ import path from "path";
 import { prisma } from "@/utils/db";
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
+import type { Prisma } from "@prisma/client";
+
+// Prisma type for the response including relations
+type ResponseWithRelations = Prisma.ResponseWithTeacherGetPayload<{
+  include: {
+    teacher: { select: { name: true; email: true } };
+    form: { select: { id: true; title: true; type: true; questions: true } };
+    teacherLocation: {
+      select: {
+        country: true;
+        state: true;
+        county: true;
+        district: true;
+        city: true;
+        school: true;
+      };
+    };
+  };
+}>;
+
+// Fetch responses in batches using cursor-based pagination
+async function fetchResponsesInBatches(
+  where: any,
+  batchSize = 2000
+): Promise<ResponseWithRelations[]> {
+  let results: ResponseWithRelations[] = [];
+  let lastId: string | undefined = undefined;
+
+  while (true) {
+    const batch: ResponseWithRelations[] =
+      await prisma.responseWithTeacher.findMany({
+        where,
+        include: {
+          teacher: { select: { name: true, email: true } },
+          form: {
+            select: { id: true, title: true, type: true, questions: true },
+          },
+          teacherLocation: {
+            select: {
+              country: true,
+              state: true,
+              county: true,
+              district: true,
+              city: true,
+              school: true,
+            },
+          },
+        },
+        take: batchSize,
+        ...(lastId && { cursor: { id: lastId }, skip: 1 }),
+        orderBy: { id: "asc" },
+      });
+
+    if (batch.length === 0) break;
+    results = results.concat(batch);
+    lastId = batch[batch.length - 1].id;
+  }
+
+  return results;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
 
-    //first extract paramter from query
     const country = url.searchParams.get("country");
     const state = url.searchParams.get("state");
     const county = url.searchParams.get("county");
@@ -19,7 +78,6 @@ export async function GET(request: NextRequest) {
     const userId = url.searchParams.get("userId");
     const role = url.searchParams.get("role");
 
-    // build filters with parameters
     const filters: any = { approved: true };
     if (country && country !== "All") filters.country = country;
     if (state && state !== "All") filters.state = state;
@@ -28,21 +86,9 @@ export async function GET(request: NextRequest) {
     if (city && city !== "All") filters.city = city;
     if (school && school !== "All") filters.school = school;
 
-    //TODO: if teacher also add that in userLocation filter(userId)
-
-    // Fetch user locations
     const userLocations = await prisma.userLocation.findMany({
       where: filters,
-      select: {
-        id: true,
-        userId: true,
-        country: true,
-        state: true,
-        county: true,
-        district: true,
-        city: true,
-        school: true,
-      },
+      select: { id: true },
     });
 
     const userLocationIds = userLocations.map((l) => l.id);
@@ -52,35 +98,11 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       );
 
-    // Build base query for responses (formType and teacherLocationIds)
     const responseWhere: any = { teacherLocationId: { in: userLocationIds } };
     if (form && form !== "All") responseWhere.formId = form;
-    if (role === "teacher") {
-      // Teacher: only responses belonging to them
-      responseWhere.teacherId = userId;
-    }
+    if (role === "teacher") responseWhere.teacherId = userId;
 
-    // Fetch responses and associated data
-    const responses = await prisma.responseWithTeacher.findMany({
-      where: responseWhere,
-      include: {
-        teacher: { select: { name: true, email: true } },
-        form: {
-          select: { id: true, title: true, type: true, questions: true },
-        },
-        teacherLocation: {
-          select: {
-            country: true,
-            state: true,
-            county: true,
-            district: true,
-            city: true,
-            school: true,
-          },
-        },
-      },
-      orderBy: { formId: "asc" },
-    });
+    const responses = await fetchResponsesInBatches(responseWhere);
 
     if (responses.length === 0)
       return NextResponse.json(
@@ -88,14 +110,15 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       );
 
-    // Create a new Excel workbook
     const filePath = path.join("/tmp", `responses_${Date.now()}.xlsx`);
     const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
       filename: filePath,
     });
 
-    // Helper function for writing one sheet
-    const writeSheet = (formResponses: any[], formData: any) => {
+    const writeSheet = (
+      formResponses: ResponseWithRelations[],
+      formData: any
+    ) => {
       const visibleQuestions = formData.questions.filter(
         (q: any) => q.showInTeacherExport
       );
@@ -116,7 +139,6 @@ export async function GET(request: NextRequest) {
         { header: "Created At", key: "createdAt", width: 22 },
       ];
 
-      // Add question columns (use question text)
       for (const q of visibleQuestions) {
         baseColumns.push({
           header:
@@ -127,14 +149,15 @@ export async function GET(request: NextRequest) {
           width: 40,
         });
       }
+
       sheet.columns = baseColumns;
 
-      // Write each response
       for (const r of formResponses) {
         const answerMap = new Map(
-          r.answers.map((a: any) => [a.questionId, a.optionCode])
+          r.answers.map((a) => [a.questionId, a.optionCode])
         );
-        const rowData: any = {
+
+        const rowData: Record<string, any> = {
           formTitle: r.form.title,
           formType: r.form.type,
           teacherName: r.teacher.name,
@@ -159,29 +182,22 @@ export async function GET(request: NextRequest) {
       sheet.commit();
     };
 
-    // If form = specific then one sheet
     if (form && form !== "All") {
-      const currentForm = responses[0].form;
-      writeSheet(responses, currentForm);
+      writeSheet(responses, responses[0].form);
     } else {
-      // 8️⃣ If form = All then one sheet per form
       const grouped = responses.reduce(
         (acc, r) => {
-          const key = r.form.id;
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(r);
+          (acc[r.form.id] ||= []).push(r);
           return acc;
         },
-        {} as Record<string, typeof responses>
+        {} as Record<string, ResponseWithRelations[]>
       );
 
-      for (const [formId, group] of Object.entries(grouped)) {
-        const formData = group[0].form;
-        writeSheet(group, formData);
+      for (const group of Object.values(grouped)) {
+        writeSheet(group, group[0].form);
       }
     }
 
-    // Finalize workbook
     await workbook.commit();
     const fileBuffer = fs.readFileSync(filePath);
 

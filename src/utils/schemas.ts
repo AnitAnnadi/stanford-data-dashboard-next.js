@@ -223,6 +223,7 @@ const OptionSchema = z.object({
 
 const QuestionSchema = z.object({
   id: z.string().min(1, "Question id is a required field"),
+  name: z.string().trim().min(1, "Question name cannot be empty"),
   question: z.string().trim().min(1, "Question cannot be empty"),
   showInTeacherExport: z.boolean(),
   options: z.array(OptionSchema),

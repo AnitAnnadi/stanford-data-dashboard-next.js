@@ -4,11 +4,7 @@ import { getSingleActiveForm, getUserLocations } from "@/utils/actions";
 import { UserLocation } from "@prisma/client";
 import Logo from "@/components/global/Logo";
 
-const DetailsPage = async ({
-  params,
-}: {
-  params: { formId: string; teacherId: string; name: string };
-}) => {
+const DetailsPage = async ({ params }: any) => {
   const routeParams = await params;
   const { formId, teacherId, name } = routeParams;
 

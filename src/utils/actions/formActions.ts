@@ -22,7 +22,7 @@ export const addForm = async (prevState: any, formData: FormData) => {
       (question: question) => {
         const id = uuidv4();
 
-        return { ...question, id };
+        return { ...question, id, name: question.name };
       }
     );
     const validatedFields = validateWithZodSchema(addFormSchema, rawData);
@@ -179,7 +179,7 @@ export const getSingleActiveForm = async (formId: string) => {
   return redirect("/");
 };
 
-export const emailCertificate = async (prevState: any, formData: FormData) => {
+export const emailCertificate = async () => {
   try {
     return { message: "Successfully emailed certificate" };
   } catch (error) {

@@ -14,11 +14,7 @@ import Link from "next/link";
 import React from "react";
 import Logo from "../../../components/global/Logo";
 
-const StanfordSelectUserLocationPage = async ({
-  params,
-}: {
-  params: { id: string };
-}) => {
+const StanfordSelectUserLocationPage = async ({ params }: any) => {
   const { id: locationId } = await params;
   const {
     user: { name, role },
