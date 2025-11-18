@@ -17,7 +17,14 @@ export async function GET(request: NextRequest) {
     // ------------------------------
     console.log(" Computing location filters...");
     const whereLocation: any = { approved: true };
-    const filterKeys = ["country", "state", "county", "district", "city", "school"];
+    const filterKeys = [
+      "country",
+      "state",
+      "county",
+      "district",
+      "city",
+      "school",
+    ];
 
     for (const key of filterKeys) {
       const val = get(key);
@@ -37,7 +44,10 @@ export async function GET(request: NextRequest) {
     console.log(`Matched Locations: ${userLocationIds.length}`);
 
     if (userLocationIds.length === 0) {
-      return NextResponse.json({ message: "No locations found" }, { status: 200 });
+      return NextResponse.json(
+        { message: "No locations found" },
+        { status: 200 }
+      );
     }
 
     // ------------------------------
@@ -51,7 +61,28 @@ export async function GET(request: NextRequest) {
     const role = get("role");
     const userId = get("userId");
 
-    if (form && form !== "All") whereResponses.formId = form;
+
+    if (form && form !== "All") {
+      console.time("DB_FORM_LOOKUP");
+      const matchingForms = await prisma.form.findMany({
+        where: { title: form },
+        select: { id: true },
+      });
+      console.timeEnd("DB_FORM_LOOKUP");
+
+      if (matchingForms.length === 0) {
+        return NextResponse.json(
+          { error: `No forms found with title: ${form}` },
+          { status: 400 }
+        );
+      }
+
+      const formIds = matchingForms.map((f: any) => f.id);
+      whereResponses.formId = { in: formIds };
+
+      console.log(`Resolved "${form}" to formIds:`, formIds);
+    }
+
     if (role === "teacher" && userId) whereResponses.teacherId = userId;
 
     console.log("Response Filter:", whereResponses);
@@ -72,7 +103,9 @@ export async function GET(request: NextRequest) {
 
       console.log(`Creating sheet for form: ${form.title}`);
 
-      const visibleQuestions = form.questions.filter((q: any) => q.showInTeacherExport);
+      const visibleQuestions = form.questions.filter(
+        (q: any) => q.showInTeacherExport
+      );
       const columns: any[] = [
         { header: "Form Title", key: "formTitle", width: 25 },
         { header: "Form Type", key: "formType", width: 10 },
@@ -90,7 +123,10 @@ export async function GET(request: NextRequest) {
 
       for (const q of visibleQuestions) {
         columns.push({
-          header: q.question.length > 80 ? q.question.slice(0, 77) + "..." : q.question,
+          header:
+            q.question.length > 80
+              ? q.question.slice(0, 77) + "..."
+              : q.question,
           key: `q_${q.id}`,
           width: 40,
         });
@@ -117,7 +153,9 @@ export async function GET(request: NextRequest) {
         where: whereResponses,
         include: {
           teacher: { select: { name: true, email: true } },
-          form: { select: { id: true, title: true, type: true, questions: true } },
+          form: {
+            select: { id: true, title: true, type: true, questions: true },
+          },
           teacherLocation: {
             select: {
               country: true,
@@ -138,13 +176,17 @@ export async function GET(request: NextRequest) {
       if (batch.length === 0) break;
 
       totalCount += batch.length;
-      console.log(`Batch #${batchIndex} size: ${batch.length} (Total: ${totalCount})`);
+      console.log(
+        `Batch #${batchIndex} size: ${batch.length} (Total: ${totalCount})`
+      );
 
       lastId = batch[batch.length - 1].id;
 
       for (const r of batch) {
         const sheet = getSheet(r.form);
-        const answerMap = new Map(r.answers.map((a: any) => [a.questionId, a.optionCode]));
+        const answerMap = new Map(
+          r.answers.map((a: any) => [a.questionId, a.optionCode])
+        );
 
         const row: any = {
           formTitle: r.form.title,
@@ -195,9 +237,11 @@ export async function GET(request: NextRequest) {
         "Content-Disposition": `attachment; filename="REACH_Lab_Export_${Date.now()}.xlsx"`,
       },
     });
-
   } catch (err) {
     console.error("Export error:", err);
-    return NextResponse.json({ error: "Failed to export data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to export data" },
+      { status: 500 }
+    );
   }
 }
