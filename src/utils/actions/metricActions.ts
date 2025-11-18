@@ -3,26 +3,31 @@
 import { renderError } from "../helpers";
 import { getUser } from "@/utils/actions";
 
-export const downloadData = async (prevState: any, formData: FormData) => {
+export const downloadData = async (paramsObj: Record<string, string>) => {
   try {
-    const params = new URLSearchParams();
-
-    for (const [key, value] of formData.entries()) {
-      if (value && value !== "All") params.append(key, value.toString());
-    }
+    const params = new URLSearchParams(paramsObj);
     const { role, userId } = await getUser();
+
     if (userId) params.append("userId", userId);
     if (role) params.append("role", role);
 
     const url = `/api/exportData?${params.toString()}`;
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `REACH_Lab_Export_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
 
-    return { message: "Successfully downloaded data" };
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to export data");
+
+    const blob = await res.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `REACH_Lab_Export_${Date.now()}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(downloadUrl);
+
+    return { success: true };
   } catch (error) {
     return renderError(error);
   }

@@ -24,6 +24,7 @@ type SubmitButtonProps = {
   className?: string;
   text?: string;
   size?: btnSize;
+  disabled?: boolean;
 };
 
 export const SubmitButton = ({

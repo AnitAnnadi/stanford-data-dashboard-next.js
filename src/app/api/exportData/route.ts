@@ -3,128 +3,77 @@ import path from "path";
 import { prisma } from "@/utils/db";
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
-import type { Prisma } from "@prisma/client";
-
-// Prisma type for the response including relations
-type ResponseWithRelations = Prisma.ResponseWithTeacherGetPayload<{
-  include: {
-    teacher: { select: { name: true; email: true } };
-    form: { select: { id: true; title: true; type: true; questions: true } };
-    teacherLocation: {
-      select: {
-        country: true;
-        state: true;
-        county: true;
-        district: true;
-        city: true;
-        school: true;
-      };
-    };
-  };
-}>;
-
-// Fetch responses in batches using cursor-based pagination
-async function fetchResponsesInBatches(
-  where: any,
-  batchSize = 2000
-): Promise<ResponseWithRelations[]> {
-  let results: ResponseWithRelations[] = [];
-  let lastId: string | undefined = undefined;
-
-  while (true) {
-    const batch: ResponseWithRelations[] =
-      await prisma.responseWithTeacher.findMany({
-        where,
-        include: {
-          teacher: { select: { name: true, email: true } },
-          form: {
-            select: { id: true, title: true, type: true, questions: true },
-          },
-          teacherLocation: {
-            select: {
-              country: true,
-              state: true,
-              county: true,
-              district: true,
-              city: true,
-              school: true,
-            },
-          },
-        },
-        take: batchSize,
-        ...(lastId && { cursor: { id: lastId }, skip: 1 }),
-        orderBy: { id: "asc" },
-      });
-
-    if (batch.length === 0) break;
-    results = results.concat(batch);
-    lastId = batch[batch.length - 1].id;
-  }
-
-  return results;
-}
 
 export async function GET(request: NextRequest) {
   try {
+    console.time("EXPORT_TOTAL");
+    console.log("Export started...");
+
     const url = new URL(request.url);
+    const get = (k: string) => url.searchParams.get(k);
 
-    const country = url.searchParams.get("country");
-    const state = url.searchParams.get("state");
-    const county = url.searchParams.get("county");
-    const district = url.searchParams.get("district");
-    const city = url.searchParams.get("city");
-    const school = url.searchParams.get("school");
-    const form = url.searchParams.get("form");
-    const userId = url.searchParams.get("userId");
-    const role = url.searchParams.get("role");
+    // ------------------------------
+    // 1) Build location filters
+    // ------------------------------
+    console.log(" Computing location filters...");
+    const whereLocation: any = { approved: true };
+    const filterKeys = ["country", "state", "county", "district", "city", "school"];
 
-    const filters: any = { approved: true };
-    if (country && country !== "All") filters.country = country;
-    if (state && state !== "All") filters.state = state;
-    if (county && county !== "All") filters.county = county;
-    if (district && district !== "All") filters.district = district;
-    if (city && city !== "All") filters.city = city;
-    if (school && school !== "All") filters.school = school;
+    for (const key of filterKeys) {
+      const val = get(key);
+      if (val && val !== "All") whereLocation[key] = val;
+    }
 
+    console.log("Location filter:", whereLocation);
+
+    console.time("DB_LOCATIONS");
     const userLocations = await prisma.userLocation.findMany({
-      where: filters,
+      where: whereLocation,
       select: { id: true },
     });
+    console.timeEnd("DB_LOCATIONS");
 
     const userLocationIds = userLocations.map((l) => l.id);
-    if (userLocationIds.length === 0)
-      return NextResponse.json(
-        { message: "No locations found" },
-        { status: 200 }
-      );
+    console.log(`Matched Locations: ${userLocationIds.length}`);
 
-    const responseWhere: any = { teacherLocationId: { in: userLocationIds } };
-    if (form && form !== "All") responseWhere.formId = form;
-    if (role === "teacher") responseWhere.teacherId = userId;
+    if (userLocationIds.length === 0) {
+      return NextResponse.json({ message: "No locations found" }, { status: 200 });
+    }
 
-    const responses = await fetchResponsesInBatches(responseWhere);
+    // ------------------------------
+    // 2) Build response filters
+    // ------------------------------
+    const whereResponses: any = {
+      teacherLocationId: { in: userLocationIds },
+    };
 
-    if (responses.length === 0)
-      return NextResponse.json(
-        { message: "No responses found" },
-        { status: 200 }
-      );
+    const form = get("form");
+    const role = get("role");
+    const userId = get("userId");
+
+    if (form && form !== "All") whereResponses.formId = form;
+    if (role === "teacher" && userId) whereResponses.teacherId = userId;
+
+    console.log("Response Filter:", whereResponses);
 
     const filePath = path.join("/tmp", `responses_${Date.now()}.xlsx`);
+    console.log("Creating workbook:", filePath);
+
     const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
       filename: filePath,
+      useStyles: false,
+      useSharedStrings: false,
     });
 
-    const writeSheet = (
-      formResponses: ResponseWithRelations[],
-      formData: any
-    ) => {
-      const visibleQuestions = formData.questions.filter(
-        (q: any) => q.showInTeacherExport
-      );
-      const sheet = workbook.addWorksheet(formData.title.slice(0, 31));
+    const sheets = new Map<string, ExcelJS.Worksheet>();
 
-      const baseColumns = [
+    function getSheet(form: any) {
+      if (sheets.has(form.id)) return sheets.get(form.id)!;
+
+      console.log(`Creating sheet for form: ${form.title}`);
+
+      const visibleQuestions = form.questions.filter((q: any) => q.showInTeacherExport);
+      const columns: any[] = [
         { header: "Form Title", key: "formTitle", width: 25 },
         { header: "Form Type", key: "formType", width: 10 },
         { header: "Teacher Name", key: "teacherName", width: 25 },
@@ -140,24 +89,64 @@ export async function GET(request: NextRequest) {
       ];
 
       for (const q of visibleQuestions) {
-        baseColumns.push({
-          header:
-            q.question.length > 80
-              ? q.question.slice(0, 77) + "..."
-              : q.question,
+        columns.push({
+          header: q.question.length > 80 ? q.question.slice(0, 77) + "..." : q.question,
           key: `q_${q.id}`,
           width: 40,
         });
       }
 
-      sheet.columns = baseColumns;
+      const sheet = workbook.addWorksheet(form.title.slice(0, 31));
+      sheet.columns = columns;
+      sheets.set(form.id, sheet);
+      return sheet;
+    }
 
-      for (const r of formResponses) {
-        const answerMap = new Map(
-          r.answers.map((a) => [a.questionId, a.optionCode])
-        );
+    // ------------------------------
+    // 4) Batch Stream Response Data
+    // ------------------------------
+    const batchSize = 5000;
+    let lastId: string | undefined = undefined;
+    let totalCount = 0;
+    let batchIndex = 0;
 
-        const rowData: Record<string, any> = {
+    console.log(" Starting batch streaming...");
+    while (true) {
+      console.time(`DB_BATCH_${batchIndex}`);
+      const batch: any[] = await prisma.responseWithTeacher.findMany({
+        where: whereResponses,
+        include: {
+          teacher: { select: { name: true, email: true } },
+          form: { select: { id: true, title: true, type: true, questions: true } },
+          teacherLocation: {
+            select: {
+              country: true,
+              state: true,
+              county: true,
+              district: true,
+              city: true,
+              school: true,
+            },
+          },
+        },
+        take: batchSize,
+        ...(lastId && { cursor: { id: lastId }, skip: 1 }),
+        orderBy: { id: "asc" },
+      });
+      console.timeEnd(`DB_BATCH_${batchIndex}`);
+
+      if (batch.length === 0) break;
+
+      totalCount += batch.length;
+      console.log(`Batch #${batchIndex} size: ${batch.length} (Total: ${totalCount})`);
+
+      lastId = batch[batch.length - 1].id;
+
+      for (const r of batch) {
+        const sheet = getSheet(r.form);
+        const answerMap = new Map(r.answers.map((a: any) => [a.questionId, a.optionCode]));
+
+        const row: any = {
           formTitle: r.form.title,
           formType: r.form.type,
           teacherName: r.teacher.name,
@@ -172,36 +161,33 @@ export async function GET(request: NextRequest) {
           createdAt: r.createdAt.toISOString(),
         };
 
-        for (const q of visibleQuestions) {
-          rowData[`q_${q.id}`] = answerMap.get(q.id) ?? "";
+        for (const q of r.form.questions) {
+          if (q.showInTeacherExport) {
+            row[`q_${q.id}`] = answerMap.get(q.id) ?? "";
+          }
         }
 
-        sheet.addRow(rowData).commit();
+        sheet.addRow(row).commit();
       }
 
-      sheet.commit();
-    };
-
-    if (form && form !== "All") {
-      writeSheet(responses, responses[0].form);
-    } else {
-      const grouped = responses.reduce(
-        (acc, r) => {
-          (acc[r.form.id] ||= []).push(r);
-          return acc;
-        },
-        {} as Record<string, ResponseWithRelations[]>
-      );
-
-      for (const group of Object.values(grouped)) {
-        writeSheet(group, group[0].form);
-      }
+      batchIndex++;
     }
 
-    await workbook.commit();
-    const fileBuffer = fs.readFileSync(filePath);
+    console.log("Total rows written:", totalCount);
+    console.log("Finalizing workbook...");
 
-    return new NextResponse(fileBuffer, {
+    for (const sheet of sheets.values()) sheet.commit();
+
+    console.time("WORKBOOK_COMMIT");
+    await workbook.commit();
+    console.timeEnd("WORKBOOK_COMMIT");
+
+    console.timeEnd("EXPORT_TOTAL");
+    console.log("Export complete. Preparing download...");
+
+    // Stream the file to the client
+    const stream = fs.createReadStream(filePath);
+    return new NextResponse(stream as any, {
       status: 200,
       headers: {
         "Content-Type":
@@ -209,11 +195,9 @@ export async function GET(request: NextRequest) {
         "Content-Disposition": `attachment; filename="REACH_Lab_Export_${Date.now()}.xlsx"`,
       },
     });
+
   } catch (err) {
     console.error("Export error:", err);
-    return NextResponse.json(
-      { error: "Failed to export data" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to export data" }, { status: 500 });
   }
 }

@@ -26,6 +26,28 @@ const AdminMetricsFilters = ({
   const fixedCounty = fixedState && role != Roles.state;
   const fixedDistrict = fixedCounty && role != Roles.county;
   const fixedCityAndSchool = role == Roles.site;
+  const [loading, setLoading] = useState(false);
+  const handleExport = async (prevState: any, formData: FormData) => {
+    try {
+      setLoading(true);
+      const paramsObj: Record<string, string> = {};
+
+      console.log("FORM DATA ENTRIES:");
+      for (const [key, value] of formData.entries()) {
+        console.log(key, value);
+        if (value && value !== "All") paramsObj[key] = String(value);
+      }
+
+      await downloadData(paramsObj);
+
+      return { success: true, message: "Successfully downloaded export file" };
+    } catch (err) {
+      console.error(err);
+      return { success: false, message: "Export failed", errorMessage: true };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [location, setLocation] = useState({
     country: fixedCountry ? (adminLocation?.country as string) : "All",
@@ -182,7 +204,7 @@ const AdminMetricsFilters = ({
   }, [location.city]);
 
   return (
-    <FormContainer action={downloadData}>
+    <FormContainer action={handleExport}>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4">
         <div>
           <Label>Country</Label>
@@ -287,7 +309,11 @@ const AdminMetricsFilters = ({
             withMargin={false}
           />
         </div>
-        <SubmitButton text="export data" size="default" className="self-end" />
+        <SubmitButton
+          disabled={loading}
+          className="self-end"
+          text={loading ? "Exporting..." : "Export Data"}
+        />
       </div>
     </FormContainer>
   );
