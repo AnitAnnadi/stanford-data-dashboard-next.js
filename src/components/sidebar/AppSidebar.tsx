@@ -87,7 +87,7 @@ const AppSidebar = async () => {
         </SidebarHeader>
       </Link>
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="text-center">
           <SidebarGroupLabel>Curriculum Data Dashboard</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

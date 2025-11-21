@@ -21,8 +21,18 @@ const roleOptions = [
     international: true,
   },
   {
+    role: "site-teacher",
+    label: "site Admin (with teacher/educator code)",
+    international: true,
+  },
+  {
     role: "district",
     label: "district admin",
+    international: false,
+  },
+  {
+    role: "district-teacher",
+    label: "district admin (with teacher/educator code)",
     international: false,
   },
   {
@@ -31,8 +41,18 @@ const roleOptions = [
     international: false,
   },
   {
+    role: "county-teacher",
+    label: "county admin (with teacher/educator code)",
+    international: false,
+  },
+  {
     role: "state",
     label: "state admin",
+    international: false,
+  },
+  {
+    role: "state-teacher",
+    label: "state admin (with teacher/educator code)",
     international: false,
   },
   {
@@ -43,26 +63,6 @@ const roleOptions = [
   {
     role: "stanford",
     label: "stanford admin",
-    international: false,
-  },
-  {
-    role: "site-teacher",
-    label: "site Admin & Teacher",
-    international: true,
-  },
-  {
-    role: "district-teacher",
-    label: "district admin & teacher",
-    international: false,
-  },
-  {
-    role: "county-teacher",
-    label: "county admin & teacher",
-    international: false,
-  },
-  {
-    role: "state-teacher",
-    label: "state admin & teacher",
     international: false,
   },
 ];
