@@ -11,16 +11,16 @@ export default function Home() {
         <div className="grid sm:grid-cols-2 gap-10 mt-10 text-2xl font-semibold">
           <div>
             <p>NEW USER</p>
-            <Button className="w-full mt-4">
-              <Link href="/register">Register Here</Link>
-            </Button>
+            <Link href="/register">
+              <Button className="w-full mt-4">Register Here</Button>
+            </Link>
           </div>
 
           <div>
             <p>RETURNING USER</p>
-            <Button className="w-full mt-4">
-              <Link href="/login">Login Here</Link>
-            </Button>
+            <Link href="/login">
+              <Button className="w-full mt-4">Login Here</Button>
+            </Link>
           </div>
         </div>
       </div>
