@@ -10,6 +10,7 @@ import { fetchLocations } from "@/utils/helpers";
 import { Label } from "../ui/label";
 import SelectInput from "../form/SelectInput";
 import { SubmitButton } from "../form/Buttons";
+import { Input } from "../ui/input";
 
 const AdminMetricsFilters = ({
   role,
@@ -307,6 +308,22 @@ const AdminMetricsFilters = ({
             ]}
             defaultValue="All"
             withMargin={false}
+          />
+        </div>
+        <div>
+          <Label htmlFor="startDate">Start Date</Label>
+          <Input
+            id="startDate"
+            name="startDate"
+            type="date"
+          />
+        </div>
+        <div>
+          <Label htmlFor="endDate">End Date</Label>
+          <Input
+            id="endDate"
+            name="endDate"
+            type="date"
           />
         </div>
         <SubmitButton

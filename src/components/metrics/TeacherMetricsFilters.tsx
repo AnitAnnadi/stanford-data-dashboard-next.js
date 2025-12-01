@@ -8,6 +8,7 @@ import SelectInput from "../form/SelectInput";
 import { downloadData } from "@/utils/actions";
 import { SubmitButton } from "../form/Buttons";
 import { useEffect } from "react";
+import { Input } from "../ui/input";
 
 const TeacherMetricsFilters = ({
   teacherLocations,
@@ -316,6 +317,22 @@ const TeacherMetricsFilters = ({
             ]}
             defaultValue="All"
             withMargin={false}
+          />
+        </div>
+        <div>
+          <Label htmlFor="startDate">Start Date</Label>
+          <Input
+            id="startDate"
+            name="startDate"
+            type="date"
+          />
+        </div>
+        <div>
+          <Label htmlFor="endDate">End Date</Label>
+          <Input
+            id="endDate"
+            name="endDate"
+            type="date"
           />
         </div>
         <SubmitButton

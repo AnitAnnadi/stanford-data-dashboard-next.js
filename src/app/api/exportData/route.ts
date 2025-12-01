@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
     const form = get("form");
     const role = get("role");
     const userId = get("userId");
-
+    const startDate = get("startDate");
+    const endDate = get("endDate");
 
     if (form && form !== "All") {
       console.time("DB_FORM_LOOKUP");
@@ -84,6 +85,25 @@ export async function GET(request: NextRequest) {
     }
 
     if (role === "teacher" && userId) whereResponses.teacherId = userId;
+
+    // Add date range filtering
+    if (startDate || endDate) {
+      whereResponses.createdAt = {};
+
+      if (startDate) {
+        const startDateTime = new Date(startDate);
+        startDateTime.setHours(0, 0, 0, 0);
+        whereResponses.createdAt.gte = startDateTime;
+        console.log("Start date filter:", startDateTime);
+      }
+
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereResponses.createdAt.lte = endDateTime;
+        console.log("End date filter:", endDateTime);
+      }
+    }
 
     console.log("Response Filter:", whereResponses);
 
@@ -122,11 +142,9 @@ export async function GET(request: NextRequest) {
       ];
 
       for (const q of visibleQuestions) {
+        const label = q.name ?? q.question;
         columns.push({
-          header:
-            q.question.length > 80
-              ? q.question.slice(0, 77) + "..."
-              : q.question,
+          header: label.length > 80 ? label.slice(0, 77) + "..." : label,
           key: `q_${q.id}`,
           width: 40,
         });
@@ -200,7 +218,15 @@ export async function GET(request: NextRequest) {
           district: r.teacherLocation.district,
           city: r.teacherLocation.city,
           school: r.teacherLocation.school,
-          createdAt: r.createdAt.toISOString(),
+          createdAt: r.createdAt.toLocaleString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }),
         };
 
         for (const q of r.form.questions) {
