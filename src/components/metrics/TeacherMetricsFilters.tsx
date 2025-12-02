@@ -233,7 +233,7 @@ const TeacherMetricsFilters = ({
 
   return (
     <FormContainer action={handleExport}>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <Label>Country</Label>
           <LocationComboBox
@@ -247,6 +247,7 @@ const TeacherMetricsFilters = ({
                 ? [location.country]
                 : ["All", ...countries]
             }
+            marginBottom={0}
           />
         </div>
         {isUSA && (
@@ -260,6 +261,7 @@ const TeacherMetricsFilters = ({
                   setLocation((prev) => ({ ...prev, state }))
                 }
                 options={oneLocation ? [location.state] : ["All", ...states]}
+                marginBottom={0}
               />
             </div>
             <div>
@@ -271,6 +273,7 @@ const TeacherMetricsFilters = ({
                   setLocation((prev) => ({ ...prev, county }))
                 }
                 options={oneLocation ? [location.county] : ["All", ...counties]}
+                marginBottom={0}
               />
             </div>
             <div>
@@ -284,6 +287,7 @@ const TeacherMetricsFilters = ({
                 options={
                   oneLocation ? [location.district] : ["All", ...districts]
                 }
+                marginBottom={0}
               />
             </div>
           </>
@@ -295,6 +299,7 @@ const TeacherMetricsFilters = ({
             value={location.city}
             onChange={(city) => setLocation((prev) => ({ ...prev, city }))}
             options={oneLocation ? [location.city] : ["All", ...cities]}
+            marginBottom={0}
           />
         </div>
         <div>
@@ -304,6 +309,7 @@ const TeacherMetricsFilters = ({
             value={location.school}
             onChange={(school) => setLocation((prev) => ({ ...prev, school }))}
             options={oneLocation ? [location.school] : ["All", ...schools]}
+            marginBottom={0}
           />
         </div>
         <div>
@@ -321,19 +327,11 @@ const TeacherMetricsFilters = ({
         </div>
         <div>
           <Label htmlFor="startDate">Start Date</Label>
-          <Input
-            id="startDate"
-            name="startDate"
-            type="date"
-          />
+          <Input id="startDate" name="startDate" type="date" />
         </div>
         <div>
           <Label htmlFor="endDate">End Date</Label>
-          <Input
-            id="endDate"
-            name="endDate"
-            type="date"
-          />
+          <Input id="endDate" name="endDate" type="date" />
         </div>
         <SubmitButton
           disabled={loading}
