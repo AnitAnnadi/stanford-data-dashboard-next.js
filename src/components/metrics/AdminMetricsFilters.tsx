@@ -206,7 +206,7 @@ const AdminMetricsFilters = ({
 
   return (
     <FormContainer action={handleExport}>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <Label>Country</Label>
           <LocationComboBox
@@ -220,6 +220,7 @@ const AdminMetricsFilters = ({
                 ? [adminLocation?.country as string]
                 : ["All", ...countries]
             }
+            marginBottom={0}
           />
         </div>
         {isUSA && (
@@ -237,6 +238,7 @@ const AdminMetricsFilters = ({
                     ? [adminLocation?.state as string]
                     : ["All", ...states]
                 }
+                marginBottom={0}
               />
             </div>
             <div>
@@ -252,6 +254,7 @@ const AdminMetricsFilters = ({
                     ? [adminLocation?.county as string]
                     : ["All", ...counties]
                 }
+                marginBottom={0}
               />
             </div>
             <div>
@@ -267,6 +270,7 @@ const AdminMetricsFilters = ({
                     ? [adminLocation?.district as string]
                     : ["All", ...districts]
                 }
+                marginBottom={0}
               />
             </div>
           </>
@@ -282,6 +286,7 @@ const AdminMetricsFilters = ({
                 ? [adminLocation?.city as string]
                 : ["All", ...cities]
             }
+            marginBottom={0}
           />
         </div>
         <div>
@@ -295,6 +300,7 @@ const AdminMetricsFilters = ({
                 ? [adminLocation?.school as string]
                 : ["All", ...schools]
             }
+            marginBottom={0}
           />
         </div>
         <div>
@@ -312,19 +318,11 @@ const AdminMetricsFilters = ({
         </div>
         <div>
           <Label htmlFor="startDate">Start Date</Label>
-          <Input
-            id="startDate"
-            name="startDate"
-            type="date"
-          />
+          <Input id="startDate" name="startDate" type="date" />
         </div>
         <div>
           <Label htmlFor="endDate">End Date</Label>
-          <Input
-            id="endDate"
-            name="endDate"
-            type="date"
-          />
+          <Input id="endDate" name="endDate" type="date" />
         </div>
         <SubmitButton
           disabled={loading}
