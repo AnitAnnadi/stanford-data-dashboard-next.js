@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       const val = get(key);
       if (val && val !== "All") whereLocation[key] = val;
     }
-
     console.log("Location filter:", whereLocation);
 
     console.time("DB_LOCATIONS");
@@ -107,6 +106,18 @@ export async function GET(request: NextRequest) {
 
     console.log("Response Filter:", whereResponses);
 
+    // ------------------------------
+    // 3) Pre-cache all form data
+    // ------------------------------
+    console.time("DB_FORMS_PRECACHE");
+    const allForms = await prisma.form.findMany({
+      select: { id: true, title: true, type: true, questions: true },
+    });
+    console.timeEnd("DB_FORMS_PRECACHE");
+
+    const formCache = new Map(allForms.map((f: any) => [f.id, f]));
+    console.log(`Cached ${formCache.size} forms`);
+
     const filePath = path.join("/tmp", `responses_${Date.now()}.xlsx`);
     console.log("Creating workbook:", filePath);
 
@@ -118,14 +129,56 @@ export async function GET(request: NextRequest) {
 
     const sheets = new Map<string, ExcelJS.Worksheet>();
 
-    function getSheet(form: any) {
-      if (sheets.has(form.id)) return sheets.get(form.id)!;
+    // Helper to get base form name (remove year suffix like " 2023", " 2024")
+    function getBaseFormName(formTitle: string): string {
+      return formTitle.replace(/\s+\d{4}$/, "");
+    }
 
-      console.log(`Creating sheet for form: ${form.title}`);
+    // Fast date formatter (much faster than toLocaleString)
+    function formatDate(date: Date): string {
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const year = date.getFullYear();
+      let hours = date.getHours();
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      const seconds = String(date.getSeconds()).padStart(2, "0");
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      const hoursStr = String(hours).padStart(2, "0");
+      return `${month}/${day}/${year}, ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+    }
 
-      const visibleQuestions = form.questions.filter(
-        (q: any) => q.showInTeacherExport
-      );
+    // ------------------------------
+    // Pre-build all sheets with complete columns
+    // ------------------------------
+    console.log("Pre-building sheets with all question columns...");
+    const formGroupQuestions = new Map<string, Map<string, any>>();
+
+    // Group forms by base name and collect all unique questions
+    // Use question header name as key to avoid duplicating pre/post questions
+    for (const form of allForms) {
+      const baseFormName = getBaseFormName(form.title);
+
+      if (!formGroupQuestions.has(baseFormName)) {
+        formGroupQuestions.set(baseFormName, new Map());
+      }
+
+      const questionMap = formGroupQuestions.get(baseFormName)!;
+
+      form.questions.forEach((q: any) => {
+        if (q.showInTeacherExport) {
+          const headerName = q.name ?? q.question;
+
+          // Use header name as key to deduplicate pre/post questions with same text
+          if (!questionMap.has(headerName)) {
+            questionMap.set(headerName, q);
+          }
+        }
+      });
+    }
+
+    // Create sheets with complete column sets
+    for (const [baseFormName, questionMap] of formGroupQuestions.entries()) {
       const columns: any[] = [
         { header: "Form Title", key: "formTitle", width: 25 },
         { header: "Form Type", key: "formType", width: 10 },
@@ -141,7 +194,8 @@ export async function GET(request: NextRequest) {
         { header: "Created At", key: "createdAt", width: 22 },
       ];
 
-      for (const q of visibleQuestions) {
+      // Add all question columns for this form group
+      for (const q of questionMap.values()) {
         const label = q.name ?? q.question;
         columns.push({
           header: label.length > 80 ? label.slice(0, 77) + "..." : label,
@@ -150,33 +204,41 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const sheet = workbook.addWorksheet(form.title.slice(0, 31));
+      const sheet = workbook.addWorksheet(baseFormName.slice(0, 31));
       sheet.columns = columns;
-      sheets.set(form.id, sheet);
-      return sheet;
+      sheets.set(baseFormName, sheet);
+      console.log(`Created sheet "${baseFormName}" with ${questionMap.size} question columns`);
     }
 
     // ------------------------------
     // 4) Batch Stream Response Data
     // ------------------------------
-    const batchSize = 5000;
+    const batchSize = 10000; // Increased from 5000
     let lastId: string | undefined = undefined;
     let totalCount = 0;
     let batchIndex = 0;
+
+    // Collect all rows per sheet for sorting
+    const sheetRows = new Map<string, any[]>();
+    for (const baseFormName of sheets.keys()) {
+      sheetRows.set(baseFormName, []);
+    }
 
     console.log(" Starting batch streaming...");
     while (true) {
       console.time(`DB_BATCH_${batchIndex}`);
       const batch: any[] = await prisma.responseWithTeacher.findMany({
         where: whereResponses,
-        include: {
+        select: {
+          id: true,
+          formId: true,
+          grade: true,
+          period: true,
+          answers: true,
+          createdAt: true,
           teacher: { select: { name: true, email: true } },
-          form: {
-            select: { id: true, title: true, type: true, questions: true },
-          },
           teacherLocation: {
             select: {
-              country: true,
               state: true,
               county: true,
               district: true,
@@ -201,14 +263,17 @@ export async function GET(request: NextRequest) {
       lastId = batch[batch.length - 1].id;
 
       for (const r of batch) {
-        const sheet = getSheet(r.form);
+        const form: any = formCache.get(r.formId);
+        if (!form) continue; // Skip if form not found in cache
+
+        const baseFormName = getBaseFormName(form.title);
         const answerMap = new Map(
           r.answers.map((a: any) => [a.questionId, a.optionCode])
         );
 
         const row: any = {
-          formTitle: r.form.title,
-          formType: r.form.type,
+          formTitle: form.title,
+          formType: form.type,
           teacherName: r.teacher.name,
           teacherEmail: r.teacher.email,
           grade: r.grade,
@@ -218,32 +283,38 @@ export async function GET(request: NextRequest) {
           district: r.teacherLocation.district,
           city: r.teacherLocation.city,
           school: r.teacherLocation.school,
-          createdAt: r.createdAt.toLocaleString("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-          }),
+          createdAt: formatDate(r.createdAt),
         };
 
-        for (const q of r.form.questions) {
+        for (const q of form.questions) {
           if (q.showInTeacherExport) {
             row[`q_${q.id}`] = answerMap.get(q.id) ?? "";
           }
         }
 
-        sheet.addRow(row).commit();
+        // Collect row instead of writing immediately
+        sheetRows.get(baseFormName)?.push(row);
       }
 
       batchIndex++;
     }
 
-    console.log("Total rows written:", totalCount);
-    console.log("Finalizing workbook...");
+    console.log("Total rows collected:", totalCount);
+    console.log("Sorting and writing rows...");
 
+    // Sort and write rows for each sheet
+    for (const [baseFormName, rows] of sheetRows.entries()) {
+      // Sort by form title (puts 2023 before 2024)
+      rows.sort((a, b) => a.formTitle.localeCompare(b.formTitle));
+
+      const sheet = sheets.get(baseFormName)!;
+      for (const row of rows) {
+        sheet.addRow(row).commit();
+      }
+      console.log(`Written ${rows.length} rows to sheet "${baseFormName}"`);
+    }
+
+    console.log("Finalizing workbook...");
     for (const sheet of sheets.values()) sheet.commit();
 
     console.time("WORKBOOK_COMMIT");
