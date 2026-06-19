@@ -285,7 +285,6 @@ export async function GET(request: NextRequest) {
         { header: "curriculum", key: "formTitle", width: 25 },
         { header: "pre_post", key: "formType", width: 10 },
         { header: "teacher_name", key: "teacherName", width: 25 },
-        { header: "teacher_email", key: "teacherEmail", width: 30 },
         { header: "grade", key: "grade", width: 10 },
         { header: "period", key: "period", width: 10 },
         { header: "country", key: "country", width: 20 },
@@ -416,10 +415,10 @@ export async function GET(request: NextRequest) {
 
       const teachers = await prisma.user.findMany({
         where: { id: { in: teacherIds } },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true },
       });
       const teacherMap = new Map(
-        teachers.map((t) => [t.id, { name: t.name, email: t.email }])
+        teachers.map((t) => [t.id, { name: t.name }])
       );
 
       const locations = await prisma.userLocation.findMany({
@@ -486,7 +485,6 @@ export async function GET(request: NextRequest) {
           formTitle: sanitizeString(form.title),
           formType: sanitizeString(form.type),
           teacherName: sanitizeString(r.teacher.name),
-          teacherEmail: sanitizeString(r.teacher.email),
           grade: (() => {
             if (r.grade === null || r.grade === undefined || r.grade === "") return undefined;
             const n = Number(r.grade);

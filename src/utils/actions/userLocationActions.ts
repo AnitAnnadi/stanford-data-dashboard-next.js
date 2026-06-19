@@ -98,6 +98,22 @@ export const addUserLocation = async (prevState: any, formData: FormData) => {
     };
 
     await fillUserLocationDetails(validatedFields, userLocation);
+
+    const duplicate = await prisma.userLocation.findFirst({
+      where: {
+        userId,
+        country: userLocation.country,
+        state: userLocation.state,
+        county: userLocation.county,
+        district: userLocation.district,
+        city: userLocation.city,
+        school: userLocation.school,
+      },
+    });
+    if (duplicate) {
+      return { message: "Successfully added location", redirect: isTeacher ? "/dashboard" : "/dashboard/metrics" };
+    }
+
     await verifyLocationConsistency({
       userId,
       role,

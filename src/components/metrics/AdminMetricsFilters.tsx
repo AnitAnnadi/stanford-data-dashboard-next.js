@@ -94,6 +94,20 @@ const AdminMetricsFilters = ({
   const [cities, setCities] = useState<string[]>([]);
   const [schools, setSchools] = useState<string[]>([]);
 
+  // For roles with a fixed parent level, child options are never loaded by the
+  // change effects (they guard with early returns). Load them once on mount.
+  useEffect(() => {
+    if (fixedState && !fixedCounty && location.state !== "All") {
+      fetchLocations("county", { country: location.country, state: location.state }).then(setCounties);
+    }
+    if (fixedCounty && !fixedDistrict && location.county && location.county !== "All") {
+      fetchLocations("district", { country: location.country, state: location.state, county: location.county }).then(setDistricts);
+    }
+    if (fixedDistrict && !fixedCityAndSchool && location.district && location.district !== "All") {
+      fetchLocations("city", { country: location.country, state: location.state, county: location.county, district: location.district }).then(setCities);
+    }
+  }, []);
+
   useEffect(() => {
     if (fixedCountry) return;
 
