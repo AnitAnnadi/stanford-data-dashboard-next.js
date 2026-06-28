@@ -111,7 +111,40 @@ export async function GET(request: NextRequest) {
     const userLocationIds = userLocations.map((l) => l.id);
     console.log(`Matched UserLocations: ${userLocationIds.length}`);
 
-    if (userLocationIds.length === 0) {
+    // ------------------------------
+    // 1b) No-code (responseWithoutTeacher) geography
+    // These responses are tied to a Location (not a teacher's UserLocation).
+    // There are ~100k Locations but only a small number of no-code responses,
+    // so instead of pre-resolving location IDs and doing a giant `locationId
+    // IN (...)` (which is pathologically slow), we stream the no-code responses
+    // and apply the same geographic constraints in-app, per batch.
+    // Teachers only see their own teacher-coded responses, so they're excluded.
+    // ------------------------------
+    const includeNoCode = role !== "teacher";
+
+    // Reuse the geographic constraints from whereLocation, dropping the
+    // UserLocation-only fields (approved, userId) that Location doesn't have.
+    const { approved, userId: _excludedUserId, ...geoConstraints } =
+      whereLocation;
+    void approved;
+    void _excludedUserId;
+
+    // Flatten the Prisma constraints ({ field: { equals, mode } }) into simple
+    // case-insensitive equality checks we can run against each Location in-app.
+    const noCodeGeoMatchers: Array<{ field: string; value: string }> =
+      Object.entries(geoConstraints)
+        .map(([field, cond]: [string, any]) => ({
+          field,
+          value: String(cond?.equals ?? "").toLowerCase(),
+        }))
+        .filter((m) => m.value !== "");
+
+    const matchesNoCodeGeo = (location: any) =>
+      noCodeGeoMatchers.every(
+        (m) => String(location[m.field] ?? "").toLowerCase() === m.value
+      );
+
+    if (userLocationIds.length === 0 && !includeNoCode) {
       return NextResponse.json(
         { message: "No locations found" },
         { status: 200 },
@@ -532,6 +565,158 @@ export async function GET(request: NextRequest) {
       }
 
       batchIndex++;
+    }
+
+    // ------------------------------
+    // 4b) Batch Stream No-Code (responseWithoutTeacher) Data
+    // Same curriculum sheets; teacher_name and period are left blank.
+    // ------------------------------
+    if (includeNoCode) {
+      // No locationId filter — we stream all no-code responses (narrowed by
+      // date/form) and apply geography in-app via matchesNoCodeGeo() below.
+      const whereNoCodeResponses: any = {};
+      if (whereResponses.createdAt)
+        whereNoCodeResponses.createdAt = whereResponses.createdAt;
+      if (whereResponses.formId)
+        whereNoCodeResponses.formId = whereResponses.formId;
+
+      console.log("No-code response filter:", whereNoCodeResponses);
+
+      let noCodeLastId: string | undefined = undefined;
+      let noCodeBatchIndex = 0;
+
+      while (true) {
+        console.time(`DB_NOCODE_BATCH_${noCodeBatchIndex}`);
+
+        const batch: any[] = await prisma.responseWithoutTeacher.findMany({
+          where: whereNoCodeResponses,
+          select: {
+            id: true,
+            formId: true,
+            grade: true,
+            answers: true,
+            createdAt: true,
+            locationId: true,
+          },
+          take: batchSize,
+          ...(noCodeLastId
+            ? { cursor: { id: noCodeLastId }, skip: 1 }
+            : {}),
+          orderBy: { id: "asc" },
+        });
+
+        // Resolve location data for this batch only (handles orphans gracefully)
+        const batchLocationIds = [
+          ...new Set(batch.map((r: any) => r.locationId)),
+        ];
+        const batchLocations = await prisma.location.findMany({
+          where: { id: { in: batchLocationIds } },
+          select: {
+            id: true,
+            country: true,
+            state: true,
+            county: true,
+            district: true,
+            city: true,
+            school: true,
+          },
+        });
+        const batchLocationMap = new Map(
+          batchLocations.map((l) => [
+            l.id,
+            {
+              country: l.country,
+              state: l.state,
+              county: l.county,
+              district: l.district,
+              city: l.city,
+              school: l.school,
+            },
+          ])
+        );
+
+        console.timeEnd(`DB_NOCODE_BATCH_${noCodeBatchIndex}`);
+
+        if (batch.length === 0) break;
+
+        totalCount += batch.length;
+        console.log(
+          `No-code batch #${noCodeBatchIndex}: ${batch.length} responses (Total: ${totalCount})`,
+        );
+
+        noCodeLastId = batch[batch.length - 1].id;
+
+        for (const r of batch) {
+          const form: any = formCache.get(r.formId);
+          if (!form) continue;
+
+          const location = batchLocationMap.get(r.locationId);
+          if (!location) continue;
+
+          // Apply the admin/filter geography in-app (no DB locationId $in).
+          if (!matchesNoCodeGeo(location)) continue;
+
+          const baseFormName = getBaseFormName(form.title);
+          const formGroupKey = baseFormName;
+
+          const answerMap = new Map(
+            r.answers.map((a: any) => [a.questionId, a.optionCode]),
+          );
+
+          const row: any = {
+            responseId: r.id,
+            formTitle: sanitizeString(form.title),
+            formType: sanitizeString(form.type),
+            teacherName: undefined,
+            grade: (() => {
+              if (r.grade === null || r.grade === undefined || r.grade === "")
+                return undefined;
+              const n = Number(r.grade);
+              return Number.isNaN(n) ? undefined : n;
+            })(),
+            period: undefined,
+            country: sanitizeString(location.country),
+            state: sanitizeString(location.state),
+            county: sanitizeString(location.county),
+            district: sanitizeString(location.district),
+            city: sanitizeString(location.city),
+            school: sanitizeString(location.school),
+            createdAt: formatDate(r.createdAt),
+            time: formatTime(r.createdAt),
+          };
+
+          // Fill answer data using the same column mapping as teacher rows
+          const columnMapping = columnMappings.get(formGroupKey);
+
+          if (columnMapping) {
+            for (const [columnKey, questionIds] of columnMapping.entries()) {
+              let answer: number | undefined = undefined;
+
+              for (const qId of questionIds) {
+                const foundAnswer = answerMap.get(qId);
+
+                if (
+                  foundAnswer !== undefined &&
+                  foundAnswer !== null &&
+                  foundAnswer !== ""
+                ) {
+                  const numeric = Number(foundAnswer);
+                  answer = Number.isNaN(numeric) ? undefined : numeric;
+                  break;
+                }
+              }
+
+              if (answer !== undefined) {
+                row[columnKey] = answer;
+              }
+            }
+          }
+
+          sheetRows.get(formGroupKey)?.push(row);
+        }
+
+        noCodeBatchIndex++;
+      }
     }
 
     console.log("Total rows collected:", totalCount);
