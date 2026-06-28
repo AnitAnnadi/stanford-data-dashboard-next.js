@@ -67,6 +67,7 @@ const authorizeRoute = async (
       "/dashboard/home",
       "/dashboard/manageForms",
       "/dashboard/manageLocations",
+      "/dashboard/manageStanfordAdmins",
       "/pendingLocation",
       "/selectUserLocation/[id]",
       "/selectUserLocation"
@@ -75,6 +76,7 @@ const authorizeRoute = async (
       "/createLocation",
       "/dashboard/manageForms",
       "/dashboard/manageLocations",
+      "/dashboard/manageStanfordAdmins",
       "/pendingLocation",
       "/selectUserLocation",
       "/selectUserLocation/[id]",
@@ -82,6 +84,7 @@ const authorizeRoute = async (
     teacher: [
       "/dashboard/manageForms",
       "/dashboard/manageLocations",
+      "/dashboard/manageStanfordAdmins",
       "/selectUserLocation/[id]",
     ],
   };
@@ -94,7 +97,11 @@ const authorizeRoute = async (
       return pathname.startsWith(pattern) && pathname !== pattern;
     }
     // Handle prefix matching for routes like /dashboard/manageForms
-    if (route.endsWith("/manageForms") || route.endsWith("/manageLocations")) {
+    if (
+      route.endsWith("/manageForms") ||
+      route.endsWith("/manageLocations") ||
+      route.endsWith("/manageStanfordAdmins")
+    ) {
       return pathname.startsWith(route);
     }
     // Exact match for other routes

@@ -15,7 +15,9 @@ const LocationCardBtns = ({ locationId }: { locationId: string }) => {
           userLocationId: locationId,
         })}
       >
-        <Button>Approve Request</Button>
+        <Button className="bg-green-600 text-white hover:bg-green-700">
+          Approve Request
+        </Button>
       </ConfirmBeforeProceedingBtn>
       <ConfirmBeforeProceedingBtn
         text="decline request"

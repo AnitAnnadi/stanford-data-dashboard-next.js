@@ -9,6 +9,7 @@ import { accessPayload, refreshPayload } from "../types";
 import { renderError } from "../helpers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { sendStanfordApprovalRequestEmail } from "../email/templates/stanfordApprovalEmail";
 
 export const register = async (prevState: any, formData: FormData) => {
   try {
@@ -32,6 +33,10 @@ export const register = async (prevState: any, formData: FormData) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(validatedFields.password, salt);
 
+    // Stanford admin accounts require approval from an existing Stanford admin
+    // (e.g. Holly or Scott) before they can be used.
+    const isStanford = role === "stanford";
+
     await prisma.user.create({
       data: {
         name: validatedFields.name,
@@ -39,9 +44,23 @@ export const register = async (prevState: any, formData: FormData) => {
         password: hashedPassword,
         role: Roles[role as keyof typeof Roles],
         isTeacher: teacher,
+        approved: !isStanford,
         code: classroomCode(),
       },
     });
+
+    if (isStanford) {
+      await sendStanfordApprovalRequestEmail(
+        validatedFields.name,
+        validatedFields.email
+      );
+      return {
+        message:
+          "Your Stanford admin request has been submitted and is pending approval. You'll be able to log in once it's approved.",
+        redirect: "/login",
+      };
+    }
+
     return { message: "Successfully registered", redirect: "/login" };
   } catch (error) {
     return renderError(error);
@@ -67,6 +86,12 @@ export const login = async (prevState: any, formData: FormData) => {
 
     if (!isPasswordCorrect) {
       throw Error("Incorrect credentials");
+    }
+
+    if (user.role === Roles.stanford && !user.approved) {
+      throw Error(
+        "Your Stanford admin request is still pending approval. Please try again once it has been approved."
+      );
     }
 
     const refreshPayload: refreshPayload = { userId: user.id };

@@ -16,6 +16,7 @@ import { CiSquarePlus } from "react-icons/ci";
 import Link from "next/link";
 import SidebarDropdown from "./SidebarDropdown";
 import { getUserFromDb } from "@/utils/actions";
+import { isStanfordApproverEmail } from "@/utils/stanfordApprovers";
 import { FaFileAlt } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 import { Roles } from "@prisma/client";
@@ -48,6 +49,12 @@ const links = [
     visibleTo: ({ role }: { role: Roles }) => role === "stanford",
   },
   {
+    title: "Manage Stanford Admins",
+    url: "/dashboard/manageStanfordAdmins",
+    icon: IoPerson,
+    visibleTo: ({ isApprover }: { isApprover: boolean }) => isApprover,
+  },
+  {
     title: "Add a Location",
     url: "/selectUserLocation",
     icon: CiSquarePlus,
@@ -63,11 +70,12 @@ const links = [
 ];
 
 const AppSidebar = async () => {
-  const { name, role, isTeacher } = await getUserFromDb();
+  const { name, role, isTeacher, email } = await getUserFromDb();
   const headerLink = isTeacher ? "/dashboard" : "/dashboard/metrics";
+  const isApprover = isStanfordApproverEmail(email);
 
   const filteredLinks = links.filter((link) =>
-    link.visibleTo({ role, isTeacher })
+    link.visibleTo({ role, isTeacher, isApprover })
   );
 
   let displayRole = role;

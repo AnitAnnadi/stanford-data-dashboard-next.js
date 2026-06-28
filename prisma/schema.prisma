@@ -30,6 +30,7 @@ model User {
   password String
   role Roles
   isTeacher Boolean
+  approved Boolean @default(true)
   code String @unique
   userLocations UserLocation[]
   responsesWithTeacher ResponseWithTeacher[]
