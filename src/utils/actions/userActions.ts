@@ -95,7 +95,7 @@ export const findUserByCode = async (prevState: any, formData: FormData) => {
 
     return {
       message: "",
-      redirect: `/student/details/${formId}/${teacher.id}/${teacher.name}`,
+      redirect: `/student/details/${formId}/${teacher.id}/${encodeURIComponent(teacher.name)}`,
     };
   } catch (error) {
     return renderError(error);
