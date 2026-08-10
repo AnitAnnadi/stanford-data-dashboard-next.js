@@ -3,6 +3,8 @@ import path from "path";
 import { prisma } from "@/utils/db";
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
+import { getSessionFromRequest } from "@/utils/auth/session";
+import { Roles } from "@prisma/client";
 
 // Strip XML 1.0 illegal control characters. Returns undefined for empty/null
 // so ExcelJS skips the cell entirely instead of writing an empty string element.
@@ -16,10 +18,16 @@ function sanitizeString(val: any): string | undefined {
 
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const role = url.searchParams.get("role");
+    // This export contains every user's email address, so the Stanford check
+    // is made against the session rather than a `role` query param the caller
+    // could set themselves.
+    const session = await getSessionFromRequest(request);
 
-    if (role !== "stanford") {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    }
+
+    if (session.role !== Roles.stanford) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

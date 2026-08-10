@@ -35,14 +35,16 @@ export const downloadData = async (paramsObj: Record<string, string>) => {
 
 export const downloadUsers = async () => {
   try {
-    const { role, userId } = await getUser();
-    const params = new URLSearchParams();
-    if (userId) params.append("userId", userId);
-    if (role) params.append("role", role);
-
-    const url = `/api/exportUsers?${params.toString()}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to export users");
+    // No role is passed: /api/exportUsers authorizes from the session cookies,
+    // since this export exposes every user's email address.
+    const res = await fetch("/api/exportUsers");
+    if (!res.ok) {
+      throw new Error(
+        res.status === 401 || res.status === 403
+          ? "You are not authorized to export users"
+          : "Failed to export users"
+      );
+    }
 
     const blob = await res.blob();
     const downloadUrl = URL.createObjectURL(blob);

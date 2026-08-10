@@ -9,10 +9,12 @@ const TitleInput = ({
   defaultValue = "Untitled form",
   disabled = false,
   description,
+  note,
 }: {
   defaultValue?: string;
   disabled?: boolean;
   description?: string;
+  note?: string;
 }) => {
   const [title, setTitle] = useState(defaultValue);
 
@@ -29,6 +31,9 @@ const TitleInput = ({
           disabled={disabled}
           required
         />
+        {note && (
+          <p className="mt-2 text-sm text-muted-foreground">{note}</p>
+        )}
         {description && (
           <div>
             <p className="mt-4">{description}</p>

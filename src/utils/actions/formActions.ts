@@ -13,6 +13,16 @@ import { redirect } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { question } from "../types";
 
+// Prisma's `mode: "insensitive"` compiles to an unescaped regex on MongoDB, so
+// titles containing regex metacharacters ("LGBTQ+ Curriculum", "(elem)") match
+// nothing at all. Titles are compared in JS against the full form list, which
+// is small, rather than through a case-insensitive query.
+const sameTitle = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
+const getFormIndex = () =>
+  prisma.form.findMany({ select: { id: true, title: true, type: true } });
+
 export const addForm = async (prevState: any, formData: FormData) => {
   try {
     await ensureStanfordUser();
@@ -27,24 +37,22 @@ export const addForm = async (prevState: any, formData: FormData) => {
     );
     const validatedFields = validateWithZodSchema(addFormSchema, rawData);
 
-    const dbForm = await prisma.form.findFirst({
-      where: {
-        title: { equals: validatedFields.title, mode: "insensitive" },
-        type: validatedFields.type,
-      },
-    });
+    const existingForms = await getFormIndex();
+
+    const dbForm = existingForms.find(
+      (f) =>
+        sameTitle(f.title, validatedFields.title) &&
+        f.type === validatedFields.type
+    );
 
     if (dbForm) {
       throw Error("A form with this title and type already exists.");
     }
 
     if (validatedFields.type === "post") {
-      const preForm = await prisma.form.findFirst({
-        where: {
-          title: { equals: validatedFields.title, mode: "insensitive" },
-          type: "pre",
-        },
-      });
+      const preForm = existingForms.find(
+        (f) => sameTitle(f.title, validatedFields.title) && f.type === "pre"
+      );
 
       if (!preForm) {
         throw Error(
@@ -163,7 +171,45 @@ export const updateForm = async (prevState: any, formData: FormData) => {
       throw Error("You cannot enable certificates for pre-surveys");
     }
 
+    const newTitle = validatedFields.title;
+    const titleChanged = newTitle !== form.title;
+
+    // Pre and post surveys are paired by identical title throughout the app
+    // (student routing, the export's sheet grouping, certificates), so a
+    // rename has to move the counterpart with it or the pair silently breaks.
+    const allForms = titleChanged ? await getFormIndex() : [];
+
+    const counterpartType = form.type === "pre" ? "post" : "pre";
+    const counterpart = titleChanged
+      ? (allForms.find(
+          (f) => sameTitle(f.title, form.title) && f.type === counterpartType
+        ) ?? null)
+      : null;
+
+    if (titleChanged) {
+      const renamedIds = new Set(
+        [form.id, counterpart?.id].filter(Boolean) as string[]
+      );
+      const typesBeingRenamed = counterpart
+        ? ["pre", "post"]
+        : [form.type as string];
+
+      const conflict = allForms.find(
+        (f) =>
+          sameTitle(f.title, newTitle) &&
+          typesBeingRenamed.includes(f.type) &&
+          !renamedIds.has(f.id)
+      );
+
+      if (conflict) {
+        throw Error(
+          `A ${conflict.type}-survey named "${newTitle}" already exists.`
+        );
+      }
+    }
+
     const updateData: Parameters<typeof prisma.form.update>[0]["data"] = {
+      title: newTitle,
       active: validatedFields.active,
       provideCertificate: validatedFields.provideCertificate,
     };
@@ -177,8 +223,19 @@ export const updateForm = async (prevState: any, formData: FormData) => {
       data: updateData,
     });
 
+    if (counterpart) {
+      await prisma.form.update({
+        where: { id: counterpart.id },
+        data: { title: newTitle },
+      });
+    }
+
+    revalidatePath("/dashboard/manageForms");
+
     return {
-      message: "Succesfully updated form",
+      message: counterpart
+        ? `Successfully updated form. The matching ${counterpartType}-survey was renamed to "${newTitle}" as well.`
+        : "Successfully updated form",
       redirect: "/dashboard/manageForms",
     };
   } catch (error) {

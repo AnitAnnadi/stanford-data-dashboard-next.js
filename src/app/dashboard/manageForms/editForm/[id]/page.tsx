@@ -15,7 +15,10 @@ const EditFormPage = async ({ params }: any) => {
   return (
     <FormContainer action={updateForm}>
       <Input name="formId" type="hidden" value={formId} />
-      <TitleInput defaultValue={title} disabled={true} />
+      <TitleInput
+        defaultValue={title}
+        note="Renaming also renames the matching pre/post survey. Existing responses stay attached, but printed or QR-code links that use the old name will stop working."
+      />
       <FormDetailsInput
         defaultValues={{
           type,

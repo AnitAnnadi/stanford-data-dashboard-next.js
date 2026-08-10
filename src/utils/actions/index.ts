@@ -5,3 +5,4 @@ export * from "./userLocationActions";
 export * from "./responseWithTeacherActions";
 export * from "./responseWithoutTeacherActions";
 export * from "./metricActions";
+export * from "./distributionActions";

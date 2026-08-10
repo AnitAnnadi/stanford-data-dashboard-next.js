@@ -20,6 +20,8 @@ const SelectInput = ({
   defaultValue,
   disabled = false,
   withMargin = true,
+  onValueChange,
+  capitalizeItems = true,
 }: {
   name: string;
   placeholder: string;
@@ -28,6 +30,8 @@ const SelectInput = ({
   defaultValue?: string;
   disabled?: boolean;
   withMargin?: boolean;
+  onValueChange?: (value: string) => void;
+  capitalizeItems?: boolean;
 }) => {
   const [value, setValue] = useState(defaultValue || undefined);
 
@@ -36,12 +40,15 @@ const SelectInput = ({
       <Input name={name} type="hidden" value={value} disabled={disabled} />
       <Select
         value={value}
-        onValueChange={(value) => setValue(value)}
+        onValueChange={(value) => {
+          setValue(value);
+          onValueChange?.(value);
+        }}
         disabled={disabled}
         required
       >
         <SelectTrigger
-          className={`w-full capitalize ${withMargin ? "mt-3" : ""}`}
+          className={`w-full ${capitalizeItems ? "capitalize" : ""} ${withMargin ? "mt-3" : ""}`}
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -51,7 +58,11 @@ const SelectInput = ({
             {options.map((option) => {
               const { text, value } = option;
               return (
-                <SelectItem key={value} value={value} className="capitalize">
+                <SelectItem
+                  key={value}
+                  value={value}
+                  className={capitalizeItems ? "capitalize" : ""}
+                >
                   {text}
                 </SelectItem>
               );

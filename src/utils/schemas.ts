@@ -304,6 +304,7 @@ export const addFormSchema = z
 
 export const updateFormSchema = z.object({
   formId: z.string().min(1, "Form id is a required field"),
+  title: z.string().trim().min(1, "Title cannot be empty"),
   active: z.enum(["true", "false"]).transform((val) => val === "true"),
   provideCertificate: z
     .enum(["true", "false"])
