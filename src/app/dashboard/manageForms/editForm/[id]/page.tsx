@@ -4,13 +4,22 @@ import TitleInput from "@/components/addForm/TitleInput";
 import { SubmitButton } from "@/components/form/Buttons";
 import FormContainer from "@/components/form/FormContainer";
 import { Input } from "@/components/ui/input";
-import { updateForm, getSingleForm } from "@/utils/actions";
+import {
+  updateForm,
+  getSingleForm,
+  getCounterpartType,
+  getAnsweredQuestionIds,
+} from "@/utils/actions";
 import React from "react";
 
 const EditFormPage = async ({ params }: any) => {
   const { id: formId } = params;
   const { title, type, active, provideCertificate, questions } =
     await getSingleForm(formId);
+  const [counterpartType, answeredQuestionIds] = await Promise.all([
+    getCounterpartType(formId),
+    getAnsweredQuestionIds(formId),
+  ]);
 
   return (
     <FormContainer action={updateForm}>
@@ -27,7 +36,11 @@ const EditFormPage = async ({ params }: any) => {
         }}
         disableType={true}
       />
-      <EditQuestionsPanel initialQuestions={questions} />
+      <EditQuestionsPanel
+        initialQuestions={questions}
+        counterpartType={counterpartType}
+        answeredQuestionIds={answeredQuestionIds}
+      />
       <SubmitButton text="save changes" className="mt-4 w-full" />
     </FormContainer>
   );

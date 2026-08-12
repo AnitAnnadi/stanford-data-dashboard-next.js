@@ -221,13 +221,21 @@ const OptionSchema = z.object({
   code: z.number(),
 });
 
+// Ids are minted server-side before validation, so `id` is always present by
+// the time a payload reaches here. matrixGroup must be declared or Zod strips
+// it, which would silently un-group matrix questions on save.
 const QuestionSchema = z.object({
   id: z.string().min(1, "Question id is a required field"),
   name: z.string().trim().min(1, "Question name cannot be empty"),
   question: z.string().trim().min(1, "Question cannot be empty"),
   showInTeacherExport: z.boolean(),
-  options: z.array(OptionSchema),
+  matrixGroup: z.string().trim().nullable().optional(),
+  options: z
+    .array(OptionSchema)
+    .min(2, "Each question needs at least 2 options"),
 });
+
+export const questionsSchema = z.array(QuestionSchema);
 
 export const addFormSchema = z
   .object({
@@ -310,6 +318,11 @@ export const updateFormSchema = z.object({
     .enum(["true", "false"])
     .transform((val) => val === "true"),
   questions: z.string().optional(),
+  newQuestions: z.string().optional(),
+  mirrorNewQuestions: z
+    .enum(["true", "false"])
+    .transform((val) => val === "true")
+    .optional(),
 });
 
 export const stanfordSelectUserLocationSchema = z
