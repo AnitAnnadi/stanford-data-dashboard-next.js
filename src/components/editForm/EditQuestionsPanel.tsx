@@ -4,6 +4,9 @@ import { type Question } from "@prisma/client";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { IoIosAddCircleOutline } from "react-icons/io";
+import { CgTrash } from "react-icons/cg";
+import { X } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -63,6 +66,52 @@ const EditQuestionsPanel = ({
           i === optionIndex ? { ...opt, text: value } : opt
         );
         return { ...q, options: newOptions };
+      })
+    );
+  };
+
+  // Deletion is offered only on questions with no stored answers, so nothing
+  // that already holds data can be orphaned.
+  const deleteQuestion = (questionId: string) => {
+    if (questions.length + newQuestions.length <= 1) {
+      toast.error("A form must have at least 1 question");
+      return;
+    }
+    setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+  };
+
+  const addOptionToExisting = (questionId: string) => {
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.id === questionId
+          ? {
+              ...q,
+              options: [
+                ...q.options,
+                {
+                  text: "",
+                  code:
+                    Math.max(0, ...q.options.map((o) => o.code)) + 1,
+                },
+              ],
+            }
+          : q
+      )
+    );
+  };
+
+  const deleteOptionFromExisting = (questionId: string, optionIndex: number) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== questionId) return q;
+        if (q.options.length <= 2) {
+          toast.error("Each question needs at least 2 options");
+          return q;
+        }
+        return {
+          ...q,
+          options: q.options.filter((_, i) => i !== optionIndex),
+        };
       })
     );
   };
@@ -192,29 +241,58 @@ const EditQuestionsPanel = ({
               </Label>
               <div className="space-y-1.5">
                 {question.options.map((opt, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                  <div
+                    key={i}
+                    className="grid grid-cols-[1fr_auto_auto] gap-2 items-center"
+                  >
                     <Input
                       value={opt.text}
                       onChange={(e) => updateOptionText(question.id, i, e.target.value)}
                     />
                     {answered.has(question.id) ? (
-                      <span className="text-xs text-muted-foreground w-20 text-right">
-                        code: {opt.code}
-                      </span>
+                      <>
+                        <span className="text-xs text-muted-foreground w-20 text-right">
+                          code: {opt.code}
+                        </span>
+                        <span className="w-8" />
+                      </>
                     ) : (
-                      <Input
-                        type="number"
-                        aria-label="Option code"
-                        className="w-20"
-                        value={opt.code}
-                        onChange={(e) =>
-                          updateOptionCode(question.id, i, Number(e.target.value))
-                        }
-                      />
+                      <>
+                        <Input
+                          type="number"
+                          aria-label="Option code"
+                          className="w-20"
+                          value={opt.code}
+                          onChange={(e) =>
+                            updateOptionCode(question.id, i, Number(e.target.value))
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Delete option"
+                          className="w-8"
+                          onClick={() => deleteOptionFromExisting(question.id, i)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 ))}
               </div>
+              {!answered.has(question.id) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1"
+                  onClick={() => addOptionToExisting(question.id)}
+                >
+                  <IoIosAddCircleOutline /> Add option
+                </Button>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -225,6 +303,18 @@ const EditQuestionsPanel = ({
                 onChange={(e) => updateMatrixGroup(question.id, e.target.value)}
               />
             </div>
+
+            {!answered.has(question.id) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
+                onClick={() => deleteQuestion(question.id)}
+              >
+                <CgTrash /> Delete question
+              </Button>
+            )}
           </div>
         </QuestionCard>
       ))}

@@ -335,6 +335,26 @@ export const updateForm = async (prevState: any, formData: FormData) => {
           .map(keepCodesIfAnswered)
       : form.questions;
 
+    if (validatedFields.questions) {
+      // Dropping a question from the payload is how deletion is expressed, so
+      // confirm nothing that holds answers was dropped — those responses would
+      // survive in the database but become unreachable.
+      const submittedIds = new Set(existingQuestions.map((q) => q.id));
+      const removedAnswered = form.questions.find(
+        (q) => answeredIds.has(q.id) && !submittedIds.has(q.id)
+      );
+
+      if (removedAnswered) {
+        throw Error(
+          `"${removedAnswered.question}" already has responses and cannot be deleted.`
+        );
+      }
+    }
+
+    if (existingQuestions.length + newQuestions.length === 0) {
+      throw Error("A form must have at least 1 question");
+    }
+
     if (validatedFields.questions || newQuestions.length > 0) {
       updateData.questions = {
         set: [...existingQuestions, ...mintQuestions()],
