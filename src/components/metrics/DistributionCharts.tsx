@@ -78,10 +78,8 @@ const normalize = (
     const label = key === "pre" ? "Pre-survey" : "Post-survey";
     if (!side.exists) {
       notices.push(`This form version has no ${label.toLowerCase()}.`);
-    } else if (side.suppressed) {
-      notices.push(
-        `${label} hidden: fewer than 10 responses match the filters (${side.total}).`
-      );
+    } else if (side.empty) {
+      notices.push(`No ${label.toLowerCase()} responses match the filters.`);
     } else {
       sides.push({ key, label });
     }
@@ -277,12 +275,10 @@ const DistributionCharts = ({
     [normalized]
   );
 
-  if (data.mode === "single" && data.suppressed) {
+  if (data.mode === "single" && data.empty) {
     return (
       <p className="mt-4 text-sm text-muted-foreground">
-        Not enough responses to display charts for this selection (
-        {data.total.toLocaleString()} matched — a minimum of 10 is required to
-        protect respondent privacy). Try broadening the filters.
+        No responses match this selection. Try broadening the filters.
       </p>
     );
   }

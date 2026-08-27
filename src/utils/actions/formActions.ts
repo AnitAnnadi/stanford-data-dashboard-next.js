@@ -13,7 +13,7 @@ import { ensureStanfordUser } from "./userActions";
 import { redirect } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { question } from "../types";
-import { Prisma } from "@prisma/client";
+import { Prisma, SurveyTypes } from "@prisma/client";
 
 // Ids of questions that already have at least one stored answer. An option's
 // `code` is the only thing responses record, so changing it on a question that
@@ -131,17 +131,46 @@ export const duplicateForm = async (prevState: any, formData: FormData) => {
   try {
     await ensureStanfordUser();
 
-    const { formId, title: customTitle } = prevState;
+    const { formId, title: customTitle, type: rawType } = prevState;
     const source = await prisma.form.findUnique({ where: { id: formId } });
 
     if (!source) throw Error("Form not found");
 
+    // The copy's type is chosen in the duplicate dialog (defaulting to the
+    // counterpart's) so a finished pre-survey can be turned into its post
+    // without re-entering every question. It falls back to the source's type
+    // when no choice is passed.
+    const type: SurveyTypes = rawType === "pre" || rawType === "post"
+      ? rawType
+      : source.type;
+    const title = (customTitle || `Copy of ${source.title}`).trim();
+
+    // Same guards addForm applies: pre and post are paired by identical title
+    // throughout the app, so a title is unique per type and a post cannot
+    // exist without its pre.
+    const existingForms = await getFormIndex();
+
+    if (existingForms.find((f) => sameTitle(f.title, title) && f.type === type)) {
+      throw Error("A form with this title and type already exists.");
+    }
+
+    if (
+      type === "post" &&
+      !existingForms.find((f) => sameTitle(f.title, title) && f.type === "pre")
+    ) {
+      throw Error(
+        "A matching 'pre' form with the same title must exist before creating a 'post' form"
+      );
+    }
+
     await prisma.form.create({
       data: {
-        title: customTitle || `Copy of ${source.title}`,
-        type: source.type,
+        title,
+        type,
         active: false,
-        provideCertificate: source.provideCertificate,
+        // Certificates are a post-survey-only feature, so a pre copy of a
+        // certificate-bearing post has to drop the flag.
+        provideCertificate: type === "pre" ? false : source.provideCertificate,
         questions: {
           set: source.questions.map((q: any) => ({
             ...q,

@@ -24,6 +24,10 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+
+type SurveyType = "pre" | "post";
 
 const RowActions = ({
   formId,
@@ -34,15 +38,41 @@ const RowActions = ({
   formTitle: string;
   formType: "pre-survey" | "post-survey";
 }) => {
+  const sourceType: SurveyType = formType === "pre-survey" ? "pre" : "post";
+  const counterpartType: SurveyType = sourceType === "pre" ? "post" : "pre";
+
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateType, setDuplicateType] =
+    useState<SurveyType>(counterpartType);
   const [duplicateTitle, setDuplicateTitle] = useState("");
+  const [titleEdited, setTitleEdited] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+
+  // Pre and post surveys are paired by identical title, so a copy that flips
+  // the type keeps the title as-is; a copy of the same type needs a new one.
+  const defaultTitleFor = (type: SurveyType) =>
+    type === sourceType ? `Copy of ${formTitle}` : formTitle;
+
+  const handleTypeChange = (value: string) => {
+    const type = value as SurveyType;
+    setDuplicateType(type);
+    if (!titleEdited) setDuplicateTitle(defaultTitleFor(type));
+  };
 
   const handleDuplicate = async () => {
     try {
       setDuplicating(true);
-      await duplicateForm({ formId, title: duplicateTitle }, new FormData());
-      toast.success(`Duplicated as "${duplicateTitle}"`);
+      const result = await duplicateForm(
+        { formId, title: duplicateTitle, type: duplicateType },
+        new FormData()
+      );
+      if ("errorMessage" in result && result.errorMessage) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(
+        `Duplicated as ${duplicateType}-survey "${duplicateTitle}"`
+      );
       setDuplicateOpen(false);
     } catch {
       toast.error("Failed to duplicate form");
@@ -79,7 +109,9 @@ const RowActions = ({
           </Link>
           <DropdownMenuItem
             onSelect={() => {
-              setDuplicateTitle(`Copy of ${formTitle}`);
+              setDuplicateType(counterpartType);
+              setDuplicateTitle(defaultTitleFor(counterpartType));
+              setTitleEdited(false);
               setDuplicateOpen(true);
             }}
           >
@@ -104,11 +136,40 @@ const RowActions = ({
           <DialogHeader>
             <DialogTitle>Duplicate Form</DialogTitle>
           </DialogHeader>
-          <Input
-            value={duplicateTitle}
-            onChange={(e) => setDuplicateTitle(e.target.value)}
-            placeholder="Enter new form name"
-          />
+          <div className="space-y-2">
+            <Label>Type</Label>
+            <RadioGroup
+              value={duplicateType}
+              onValueChange={handleTypeChange}
+              className="flex gap-x-6"
+            >
+              <div className="flex items-center gap-x-2">
+                <RadioGroupItem value="pre" id="duplicate-type-pre" />
+                <Label htmlFor="duplicate-type-pre">pre-survey</Label>
+              </div>
+              <div className="flex items-center gap-x-2">
+                <RadioGroupItem value="post" id="duplicate-type-post" />
+                <Label htmlFor="duplicate-type-post">post-survey</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="duplicate-title">Title</Label>
+            <Input
+              id="duplicate-title"
+              value={duplicateTitle}
+              onChange={(e) => {
+                setTitleEdited(true);
+                setDuplicateTitle(e.target.value);
+              }}
+              placeholder="Enter new form name"
+            />
+            {duplicateType !== sourceType && (
+              <p className="text-sm text-muted-foreground">
+                Keep the title identical so the two surveys stay paired.
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDuplicateOpen(false)}>
               Cancel

@@ -3,8 +3,6 @@ import { prisma } from "../db";
 import { Prisma, Roles, SurveyTypes } from "@prisma/client";
 import { getUser } from "./userActions";
 
-const MIN_RESPONSES = 10;
-
 export type DistributionFilters = {
   form: string;
   type: SurveyTypes;
@@ -43,7 +41,7 @@ export type FormVersion = {
 
 export type DistributionResult = {
   mode: "single";
-  suppressed: boolean;
+  empty: boolean;
   total: number;
   formTitle: string;
   versions: FormVersion[];
@@ -72,7 +70,7 @@ export type CompareQuestion = {
 
 export type CompareSide = {
   exists: boolean;
-  suppressed: boolean;
+  empty: boolean;
   total: number;
 };
 
@@ -126,6 +124,20 @@ const resolveVersions = async (selectedForm: string) => {
   return { baseName, versions, versionTitles, variants };
 };
 
+// Prisma's `mode: "insensitive"` compiles to an unescaped Mongo $regex, so a
+// geography value containing regex metacharacters — e.g. Arizona districts named
+// "DOUGLAS UNIFIED DISTRICT (4174)" — silently matches nothing, and a value with
+// unbalanced parens makes the query throw outright. Build the anchored regex here
+// with the value escaped. Case-insensitivity has to stay: a handful of cities and
+// schools are stored in mixed case ("Kelowna" alongside "KELOWNA").
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const equalsInsensitive = (value: string) => ({
+  $regex: `^${escapeRegex(value)}$`,
+  $options: "i",
+});
+
 // Builds the response-level $match constraints (geography clamped to the
 // viewer's role, plus date range). `empty` means the geo filter matched no
 // locations at all.
@@ -139,7 +151,7 @@ const buildResponseMatch = async (
   const whereLocation: Record<string, unknown> = { approved: true };
 
   if (role === Roles.teacher) {
-    whereLocation.userId = userId;
+    whereLocation.userId = { $oid: userId };
     match.teacherId = { $oid: userId };
   } else if (role !== Roles.stanford) {
     const adminLocation = await prisma.userLocation.findFirst({
@@ -155,15 +167,9 @@ const buildResponseMatch = async (
     });
 
     if (adminLocation) {
-      whereLocation.country = {
-        equals: adminLocation.country,
-        mode: "insensitive",
-      };
+      whereLocation.country = equalsInsensitive(adminLocation.country);
       if (role !== Roles.country && adminLocation.state) {
-        whereLocation.state = {
-          equals: adminLocation.state,
-          mode: "insensitive",
-        };
+        whereLocation.state = equalsInsensitive(adminLocation.state);
       }
       if (
         role === Roles.county ||
@@ -171,29 +177,17 @@ const buildResponseMatch = async (
         role === Roles.site
       ) {
         if (adminLocation.county)
-          whereLocation.county = {
-            equals: adminLocation.county,
-            mode: "insensitive",
-          };
+          whereLocation.county = equalsInsensitive(adminLocation.county);
       }
       if (role === Roles.district || role === Roles.site) {
         if (adminLocation.district)
-          whereLocation.district = {
-            equals: adminLocation.district,
-            mode: "insensitive",
-          };
+          whereLocation.district = equalsInsensitive(adminLocation.district);
       }
       if (role === Roles.site) {
         if (adminLocation.city)
-          whereLocation.city = {
-            equals: adminLocation.city,
-            mode: "insensitive",
-          };
+          whereLocation.city = equalsInsensitive(adminLocation.city);
         if (adminLocation.school)
-          whereLocation.school = {
-            equals: adminLocation.school,
-            mode: "insensitive",
-          };
+          whereLocation.school = equalsInsensitive(adminLocation.school);
       }
     }
   }
@@ -209,7 +203,7 @@ const buildResponseMatch = async (
   for (const key of filterKeys) {
     const val = filters[key];
     if (val && val !== "All" && !whereLocation[key]) {
-      whereLocation[key] = { equals: val, mode: "insensitive" };
+      whereLocation[key] = equalsInsensitive(val);
     }
   }
 
@@ -220,15 +214,15 @@ const buildResponseMatch = async (
     Object.keys(whereLocation).filter((k) => k !== "approved" && k !== "userId")
       .length > 0 || role === Roles.teacher;
   if (geoConstrained) {
-    const userLocations = await prisma.userLocation.findMany({
-      where: whereLocation,
-      select: { id: true },
-    });
+    const userLocations = (await prisma.userLocation.findRaw({
+      filter: whereLocation as Prisma.InputJsonObject,
+      options: { projection: { _id: 1 } },
+    })) as unknown as Array<{ _id: { $oid: string } }>;
     if (userLocations.length === 0) {
       return { empty: true, match };
     }
     match.teacherLocationId = {
-      $in: userLocations.map((l) => ({ $oid: l.id })),
+      $in: userLocations.map((l) => ({ $oid: l._id.$oid })),
     };
   }
 
@@ -343,10 +337,10 @@ export const getDistribution = async (
       return { error: "No survey found for this form version" };
     }
 
-    const emptyResult = (total: number): DistributionResult => ({
+    const emptyResult = (): DistributionResult => ({
       mode: "single",
-      suppressed: true,
-      total,
+      empty: true,
+      total: 0,
       formTitle: form.title,
       versions,
       selectedVersion: selectedTitle,
@@ -356,20 +350,20 @@ export const getDistribution = async (
 
     const scope = await buildResponseMatch(role, userId, filters);
     if (scope.empty) {
-      return emptyResult(0);
+      return emptyResult();
     }
 
     const { total, countMap } = await aggregateResponses(form.id, scope.match);
 
-    if (total < MIN_RESPONSES) {
-      return emptyResult(total);
+    if (total === 0) {
+      return emptyResult();
     }
 
     const showAll = role === Roles.stanford || !isTeacher;
 
     return {
       mode: "single",
-      suppressed: false,
+      empty: false,
       total,
       formTitle: form.title,
       versions,
@@ -415,7 +409,7 @@ export const getPrePostDistribution = async (
 
     const scope = await buildResponseMatch(role, userId, filters);
 
-    const emptySide: CompareSide = { exists: false, suppressed: false, total: 0 };
+    const emptySide: CompareSide = { exists: false, empty: false, total: 0 };
 
     const aggregateSide = async (
       form: FormVariant | null
@@ -423,7 +417,7 @@ export const getPrePostDistribution = async (
       if (!form) return { side: emptySide, countMap: new Map() };
       if (scope.empty) {
         return {
-          side: { exists: true, suppressed: true, total: 0 },
+          side: { exists: true, empty: true, total: 0 },
           countMap: new Map(),
         };
       }
@@ -431,13 +425,13 @@ export const getPrePostDistribution = async (
         form.id,
         scope.match
       );
-      if (total < MIN_RESPONSES) {
+      if (total === 0) {
         return {
-          side: { exists: true, suppressed: true, total },
+          side: { exists: true, empty: true, total: 0 },
           countMap: new Map(),
         };
       }
-      return { side: { exists: true, suppressed: false, total }, countMap };
+      return { side: { exists: true, empty: false, total }, countMap };
     };
 
     const [preAgg, postAgg] = await Promise.all([
@@ -446,8 +440,8 @@ export const getPrePostDistribution = async (
     ]);
 
     const showAll = role === Roles.stanford || !isTeacher;
-    const preUsable = preAgg.side.exists && !preAgg.side.suppressed;
-    const postUsable = postAgg.side.exists && !postAgg.side.suppressed;
+    const preUsable = preAgg.side.exists && !preAgg.side.empty;
+    const postUsable = postAgg.side.exists && !postAgg.side.empty;
 
     const preQs = preForm && preUsable ? visibleQuestions(preForm, showAll) : [];
     const postQs =
