@@ -5,7 +5,17 @@ import FormContainer from "../form/FormContainer";
 import LocationComboBox from "../selectCreateLocation/LocationComboBox";
 import { Label } from "../ui/label";
 import SelectInput from "../form/SelectInput";
-import { downloadData } from "@/utils/actions";
+import {
+  downloadData,
+  getDistribution,
+  getPrePostDistribution,
+} from "@/utils/actions";
+import type {
+  ComparisonResult,
+  DistributionResult,
+} from "@/utils/actions/distributionActions";
+import DistributionCharts from "./DistributionCharts";
+import { toast } from "sonner";
 import { SubmitButton } from "../form/Buttons";
 import { Button } from "../ui/button";
 import { useEffect } from "react";
@@ -29,6 +39,17 @@ const TeacherMetricsFilters = ({
     school: "All",
   });
   const [loading, setLoading] = useState(false);
+  const [selectedForm, setSelectedForm] = useState("All");
+  const [surveyType, setSurveyType] = useState<"pre" | "post" | "compare">(
+    "pre"
+  );
+  const [chartVersion, setChartVersion] = useState<string | undefined>(
+    undefined
+  );
+  const [charts, setCharts] = useState<
+    DistributionResult | ComparisonResult | null
+  >(null);
+  const [loadingCharts, setLoadingCharts] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(
     firstResponseDate
   );
@@ -61,6 +82,60 @@ const TeacherMetricsFilters = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Charts are scoped server-side: buildResponseMatch clamps a teacher to their
+  // own teacherId and locations, and getDistribution limits them to questions
+  // flagged showInTeacherExport. These filters only narrow within that scope.
+  const handleViewCharts = async (
+    type: "pre" | "post" | "compare" = surveyType,
+    version: string | undefined = chartVersion
+  ) => {
+    if (selectedForm === "All") {
+      toast.error("Select a specific form to view charts");
+      return;
+    }
+    try {
+      setLoadingCharts(true);
+      const baseFilters = {
+        form: selectedForm,
+        version,
+        country: location.country,
+        state: location.state,
+        county: location.county,
+        district: location.district,
+        city: location.city,
+        school: location.school,
+        startDate: startDate?.toISOString().split("T")[0],
+        endDate: endDate?.toISOString().split("T")[0],
+      };
+      const result =
+        type === "compare"
+          ? await getPrePostDistribution(baseFilters)
+          : await getDistribution({ ...baseFilters, type });
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      setCharts(result);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load charts");
+    } finally {
+      setLoadingCharts(false);
+    }
+  };
+
+  const handleSurveyTypeChange = (type: string) => {
+    const newType =
+      type === "post" ? "post" : type === "compare" ? "compare" : "pre";
+    setSurveyType(newType);
+    if (charts) handleViewCharts(newType);
+  };
+
+  const handleVersionChange = (version: string) => {
+    setChartVersion(version);
+    if (charts) handleViewCharts(surveyType, version);
   };
 
   const onlyUnitedStates = teacherLocations.every(
@@ -247,7 +322,8 @@ const TeacherMetricsFilters = ({
   }, [location.city]);
 
   return (
-    <FormContainer action={handleExport}>
+    <>
+      <FormContainer action={handleExport}>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <Label>Country</Label>
@@ -338,6 +414,11 @@ const TeacherMetricsFilters = ({
             ]}
             defaultValue="All"
             withMargin={false}
+            onValueChange={(form) => {
+              setSelectedForm(form);
+              setChartVersion(undefined);
+              setCharts(null);
+            }}
           />
         </div>
         <div>
@@ -367,6 +448,16 @@ const TeacherMetricsFilters = ({
         />
         <Button
           type="button"
+          size="lg"
+          variant="secondary"
+          className="self-end"
+          disabled={loadingCharts}
+          onClick={() => handleViewCharts()}
+        >
+          {loadingCharts ? "Loading Charts..." : "View Charts"}
+        </Button>
+        <Button
+          type="button"
           variant="outline"
           size="lg"
           className="self-end"
@@ -377,7 +468,50 @@ const TeacherMetricsFilters = ({
           </a>
         </Button>
       </div>
-    </FormContainer>
+      </FormContainer>
+      {charts && (
+        <div className="mt-2 border-t pt-4">
+          <div className="mb-2 flex flex-wrap gap-4">
+            <div className="w-full max-w-[12rem]">
+              <Label>Survey Type</Label>
+              <SelectInput
+                name="chartSurveyType"
+                placeholder="Survey type"
+                options={[
+                  { text: "Pre-survey", value: "pre" },
+                  { text: "Post-survey", value: "post" },
+                  { text: "Pre vs Post", value: "compare" },
+                ]}
+                defaultValue={surveyType}
+                withMargin={false}
+                onValueChange={handleSurveyTypeChange}
+              />
+            </div>
+            {charts.versions.length > 1 && (
+              <div className="w-full max-w-[12rem]">
+                <Label>Form Version</Label>
+                <SelectInput
+                  key={selectedForm}
+                  name="chartFormVersion"
+                  placeholder="Form version"
+                  options={charts.versions.map((v) => ({
+                    text: v.label,
+                    value: v.title,
+                  }))}
+                  defaultValue={charts.selectedVersion}
+                  withMargin={false}
+                  onValueChange={handleVersionChange}
+                />
+              </div>
+            )}
+          </div>
+          <DistributionCharts
+            key={`${charts.formTitle}-${charts.mode === "single" ? charts.type : "compare"}`}
+            data={charts}
+          />
+        </div>
+      )}
+    </>
   );
 };
 
