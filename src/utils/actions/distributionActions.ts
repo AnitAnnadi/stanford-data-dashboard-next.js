@@ -154,8 +154,15 @@ const buildResponseMatch = async (
     whereLocation.userId = { $oid: userId };
     match.teacherId = { $oid: userId };
   } else if (role !== Roles.stanford) {
+    // An admin's scope is defined by their own location row. Only an approved
+    // row may define it, and the pick is ordered so an admin holding several
+    // rows always resolves to the same one (the oldest) rather than whatever
+    // Mongo happens to return first. Admins who also teach carry extra rows for
+    // their classrooms, so this deliberately does not union across them — that
+    // would widen an admin's jurisdiction to wherever they happen to teach.
     const adminLocation = await prisma.userLocation.findFirst({
-      where: { userId },
+      where: { userId, approved: true },
+      orderBy: { id: "asc" },
       select: {
         country: true,
         state: true,
@@ -166,29 +173,55 @@ const buildResponseMatch = async (
       },
     });
 
-    if (adminLocation) {
-      whereLocation.country = equalsInsensitive(adminLocation.country);
-      if (role !== Roles.country && adminLocation.state) {
-        whereLocation.state = equalsInsensitive(adminLocation.state);
-      }
-      if (
-        role === Roles.county ||
-        role === Roles.district ||
-        role === Roles.site
-      ) {
-        if (adminLocation.county)
-          whereLocation.county = equalsInsensitive(adminLocation.county);
-      }
-      if (role === Roles.district || role === Roles.site) {
-        if (adminLocation.district)
-          whereLocation.district = equalsInsensitive(adminLocation.district);
-      }
-      if (role === Roles.site) {
-        if (adminLocation.city)
-          whereLocation.city = equalsInsensitive(adminLocation.city);
-        if (adminLocation.school)
-          whereLocation.school = equalsInsensitive(adminLocation.school);
-      }
+    // Fail closed. Without a location there is no scope to clamp to, and
+    // falling through would leave whereLocation empty — which makes
+    // geoConstrained false below and aggregates the entire corpus instead of
+    // nothing. No scope must mean no data, never all data.
+    if (!adminLocation) {
+      return { empty: true, match };
+    }
+
+    // Each tier is defined by one field, and the clamps below only apply to
+    // fields that are present. A row missing its tier's field would therefore
+    // clamp at a broader level than the role allows — a state admin with no
+    // state would be clamped to country alone, i.e. the whole country. That is
+    // the same fail-open as having no row at all, so treat it the same way.
+    const definingField =
+      role === Roles.site
+        ? adminLocation.school
+        : role === Roles.district
+          ? adminLocation.district
+          : role === Roles.county
+            ? adminLocation.county
+            : role === Roles.state
+              ? adminLocation.state
+              : adminLocation.country;
+
+    if (!definingField) {
+      return { empty: true, match };
+    }
+
+    whereLocation.country = equalsInsensitive(adminLocation.country);
+    if (role !== Roles.country && adminLocation.state) {
+      whereLocation.state = equalsInsensitive(adminLocation.state);
+    }
+    if (
+      role === Roles.county ||
+      role === Roles.district ||
+      role === Roles.site
+    ) {
+      if (adminLocation.county)
+        whereLocation.county = equalsInsensitive(adminLocation.county);
+    }
+    if (role === Roles.district || role === Roles.site) {
+      if (adminLocation.district)
+        whereLocation.district = equalsInsensitive(adminLocation.district);
+    }
+    if (role === Roles.site) {
+      if (adminLocation.city)
+        whereLocation.city = equalsInsensitive(adminLocation.city);
+      if (adminLocation.school)
+        whereLocation.school = equalsInsensitive(adminLocation.school);
     }
   }
 
