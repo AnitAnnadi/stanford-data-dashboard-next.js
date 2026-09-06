@@ -2,6 +2,11 @@
 import { prisma } from "../db";
 import { Prisma, Roles, SurveyTypes } from "@prisma/client";
 import { getUser } from "./userActions";
+import {
+  definingFieldFor,
+  equalsInsensitive,
+  scopeForRole,
+} from "../locationFilter";
 
 export type DistributionFilters = {
   form: string;
@@ -124,20 +129,6 @@ const resolveVersions = async (selectedForm: string) => {
   return { baseName, versions, versionTitles, variants };
 };
 
-// Prisma's `mode: "insensitive"` compiles to an unescaped Mongo $regex, so a
-// geography value containing regex metacharacters — e.g. Arizona districts named
-// "DOUGLAS UNIFIED DISTRICT (4174)" — silently matches nothing, and a value with
-// unbalanced parens makes the query throw outright. Build the anchored regex here
-// with the value escaped. Case-insensitivity has to stay: a handful of cities and
-// schools are stored in mixed case ("Kelowna" alongside "KELOWNA").
-const escapeRegex = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const equalsInsensitive = (value: string) => ({
-  $regex: `^${escapeRegex(value)}$`,
-  $options: "i",
-});
-
 // Builds the response-level $match constraints (geography clamped to the
 // viewer's role, plus date range). `empty` means the geo filter matched no
 // locations at all.
@@ -154,12 +145,9 @@ const buildResponseMatch = async (
     whereLocation.userId = { $oid: userId };
     match.teacherId = { $oid: userId };
   } else if (role !== Roles.stanford) {
-    // An admin's scope is defined by their own location row. Only an approved
-    // row may define it, and the pick is ordered so an admin holding several
-    // rows always resolves to the same one (the oldest) rather than whatever
-    // Mongo happens to return first. Admins who also teach carry extra rows for
-    // their classrooms, so this deliberately does not union across them — that
-    // would widen an admin's jurisdiction to wherever they happen to teach.
+    // Ordered so an admin with several rows always resolves to the same one.
+    // Deliberately not a union: admins who also teach carry rows for their
+    // classrooms, which would widen their jurisdiction to wherever they teach.
     const adminLocation = await prisma.userLocation.findFirst({
       where: { userId, approved: true },
       orderBy: { id: "asc" },
@@ -173,55 +161,16 @@ const buildResponseMatch = async (
       },
     });
 
-    // Fail closed. Without a location there is no scope to clamp to, and
-    // falling through would leave whereLocation empty — which makes
-    // geoConstrained false below and aggregates the entire corpus instead of
-    // nothing. No scope must mean no data, never all data.
-    if (!adminLocation) {
+    // Fail closed: an unresolvable scope leaves whereLocation empty, which makes
+    // geoConstrained false below and aggregates the whole corpus.
+    if (!adminLocation || !definingFieldFor(role, adminLocation)) {
       return { empty: true, match };
     }
 
-    // Each tier is defined by one field, and the clamps below only apply to
-    // fields that are present. A row missing its tier's field would therefore
-    // clamp at a broader level than the role allows — a state admin with no
-    // state would be clamped to country alone, i.e. the whole country. That is
-    // the same fail-open as having no row at all, so treat it the same way.
-    const definingField =
-      role === Roles.site
-        ? adminLocation.school
-        : role === Roles.district
-          ? adminLocation.district
-          : role === Roles.county
-            ? adminLocation.county
-            : role === Roles.state
-              ? adminLocation.state
-              : adminLocation.country;
-
-    if (!definingField) {
-      return { empty: true, match };
-    }
-
-    whereLocation.country = equalsInsensitive(adminLocation.country);
-    if (role !== Roles.country && adminLocation.state) {
-      whereLocation.state = equalsInsensitive(adminLocation.state);
-    }
-    if (
-      role === Roles.county ||
-      role === Roles.district ||
-      role === Roles.site
-    ) {
-      if (adminLocation.county)
-        whereLocation.county = equalsInsensitive(adminLocation.county);
-    }
-    if (role === Roles.district || role === Roles.site) {
-      if (adminLocation.district)
-        whereLocation.district = equalsInsensitive(adminLocation.district);
-    }
-    if (role === Roles.site) {
-      if (adminLocation.city)
-        whereLocation.city = equalsInsensitive(adminLocation.city);
-      if (adminLocation.school)
-        whereLocation.school = equalsInsensitive(adminLocation.school);
+    for (const [field, value] of Object.entries(
+      scopeForRole(role, adminLocation)
+    )) {
+      whereLocation[field] = equalsInsensitive(value);
     }
   }
 

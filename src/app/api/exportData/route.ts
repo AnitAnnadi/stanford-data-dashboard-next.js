@@ -3,6 +3,13 @@ import path from "path";
 import { prisma } from "@/utils/db";
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
+import { Prisma, Roles } from "@prisma/client";
+import { getSessionFromRequest } from "@/utils/auth/session";
+import {
+  definingFieldFor,
+  equalsInsensitive,
+  scopeForRole,
+} from "@/utils/locationFilter";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,21 +22,25 @@ export async function GET(request: NextRequest) {
     // ------------------------------
     // 1) Build location filters
     // ------------------------------
-    const role = get("role");
-    const userId = get("userId");
+    // /api is outside the middleware matcher, so nothing has authenticated the
+    // caller yet. Resolve role from the signed cookie, never the query string —
+    // reading it from there would let anyone append `&role=stanford`.
+    const session = await getSessionFromRequest(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { role, userId } = session;
 
     console.log(" Computing location filters...");
-    const whereLocation: any = { approved: true };
 
-    // For teachers: only get THEIR locations
-    if (role === "teacher" && userId) {
-      whereLocation.userId = userId;
-    }
+    // Unescaped scope values; feeds both the Mongo filter and the no-code
+    // path's in-app comparison below.
+    let geo: Record<string, string> = {};
 
-    // For admins (non-Stanford): enforce their assigned location
-    if (role && role !== "stanford" && role !== "teacher" && userId) {
+    if (role !== Roles.stanford && role !== Roles.teacher) {
       const adminLocation = await prisma.userLocation.findFirst({
-        where: { userId },
+        where: { userId, approved: true },
+        orderBy: { id: "asc" },
         select: {
           country: true,
           state: true,
@@ -40,46 +51,16 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      if (adminLocation) {
-        // Enforce location constraints based on admin level (case-insensitive)
-        whereLocation.country = {
-          equals: adminLocation.country,
-          mode: "insensitive",
-        };
-
-        if (role !== "country" && adminLocation.state) {
-          whereLocation.state = {
-            equals: adminLocation.state,
-            mode: "insensitive",
-          };
-        }
-        if (role === "county" || role === "district" || role === "site") {
-          if (adminLocation.county)
-            whereLocation.county = {
-              equals: adminLocation.county,
-              mode: "insensitive",
-            };
-        }
-        if (role === "district" || role === "site") {
-          if (adminLocation.district)
-            whereLocation.district = {
-              equals: adminLocation.district,
-              mode: "insensitive",
-            };
-        }
-        if (role === "site") {
-          if (adminLocation.city)
-            whereLocation.city = {
-              equals: adminLocation.city,
-              mode: "insensitive",
-            };
-          if (adminLocation.school)
-            whereLocation.school = {
-              equals: adminLocation.school,
-              mode: "insensitive",
-            };
-        }
+      // Fail closed, matching buildResponseMatch: an unresolvable scope must
+      // export nothing. Falling through would export the entire corpus.
+      if (!adminLocation || !definingFieldFor(role, adminLocation)) {
+        return NextResponse.json(
+          { message: "No locations found" },
+          { status: 200 }
+        );
       }
+
+      geo = scopeForRole(role, adminLocation);
     }
 
     const filterKeys = [
@@ -92,23 +73,31 @@ export async function GET(request: NextRequest) {
     ];
 
     // Apply user-selected filters (but can't override admin restrictions above)
-    // Use case-insensitive matching for location filters
     for (const key of filterKeys) {
       const val = get(key);
-      if (val && val !== "All" && !whereLocation[key]) {
-        whereLocation[key] = { equals: val, mode: "insensitive" };
+      if (val && val !== "All" && !geo[key]) {
+        geo[key] = val;
       }
     }
-    console.log("Location filter:", whereLocation);
+    console.log("Location scope:", geo);
+
+    // findRaw because a hand-built $regex can't go through a Prisma `where`.
+    const locationFilter: Record<string, unknown> = { approved: true };
+    if (role === Roles.teacher) {
+      locationFilter.userId = { $oid: userId };
+    }
+    for (const [field, value] of Object.entries(geo)) {
+      locationFilter[field] = equalsInsensitive(value);
+    }
 
     console.time("DB_LOCATIONS");
-    const userLocations = await prisma.userLocation.findMany({
-      where: whereLocation,
-      select: { id: true },
-    });
+    const userLocations = (await prisma.userLocation.findRaw({
+      filter: locationFilter as Prisma.InputJsonObject,
+      options: { projection: { _id: 1 } },
+    })) as unknown as Array<{ _id: { $oid: string } }>;
     console.timeEnd("DB_LOCATIONS");
 
-    const userLocationIds = userLocations.map((l) => l.id);
+    const userLocationIds = userLocations.map((l) => l._id.$oid);
     console.log(`Matched UserLocations: ${userLocationIds.length}`);
 
     // ------------------------------
@@ -120,23 +109,13 @@ export async function GET(request: NextRequest) {
     // and apply the same geographic constraints in-app, per batch.
     // Teachers only see their own teacher-coded responses, so they're excluded.
     // ------------------------------
-    const includeNoCode = role !== "teacher";
+    const includeNoCode = role !== Roles.teacher;
 
-    // Reuse the geographic constraints from whereLocation, dropping the
-    // UserLocation-only fields (approved, userId) that Location doesn't have.
-    const { approved, userId: _excludedUserId, ...geoConstraints } =
-      whereLocation;
-    void approved;
-    void _excludedUserId;
-
-    // Flatten the Prisma constraints ({ field: { equals, mode } }) into simple
-    // case-insensitive equality checks we can run against each Location in-app.
+    // Same scope as plain string comparisons, run per Location in-app. Derived
+    // from `geo` so this can't drift from the query filter above.
     const noCodeGeoMatchers: Array<{ field: string; value: string }> =
-      Object.entries(geoConstraints)
-        .map(([field, cond]: [string, any]) => ({
-          field,
-          value: String(cond?.equals ?? "").toLowerCase(),
-        }))
+      Object.entries(geo)
+        .map(([field, value]) => ({ field, value: value.toLowerCase() }))
         .filter((m) => m.value !== "");
 
     const matchesNoCodeGeo = (location: any) =>

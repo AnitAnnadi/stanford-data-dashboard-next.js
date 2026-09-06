@@ -84,9 +84,7 @@ const TeacherMetricsFilters = ({
     }
   };
 
-  // Charts are scoped server-side: buildResponseMatch clamps a teacher to their
-  // own teacherId and locations, and getDistribution limits them to questions
-  // flagged showInTeacherExport. These filters only narrow within that scope.
+  // Scoping happens server-side; these filters only narrow within it.
   const handleViewCharts = async (
     type: "pre" | "post" | "compare" = surveyType,
     version: string | undefined = chartVersion

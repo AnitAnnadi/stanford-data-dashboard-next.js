@@ -1,20 +1,23 @@
 "use client";
 
 import { renderError } from "../helpers";
-import { getUser } from "@/utils/actions";
 
 export const downloadData = async (paramsObj: Record<string, string>) => {
   try {
+    // No role or userId: /api/exportData resolves both from the session cookies,
+    // since anything it trusts must not come from the caller-editable query.
     const params = new URLSearchParams(paramsObj);
-    const { role, userId } = await getUser();
-
-    if (userId) params.append("userId", userId);
-    if (role) params.append("role", role);
 
     const url = `/api/exportData?${params.toString()}`;
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to export data");
+    if (!res.ok) {
+      throw new Error(
+        res.status === 401
+          ? "Your session has expired. Please log in again."
+          : "Failed to export data"
+      );
+    }
 
     const blob = await res.blob();
     const downloadUrl = URL.createObjectURL(blob);
